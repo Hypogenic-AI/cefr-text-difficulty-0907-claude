@@ -1,0 +1,25 @@
+idea:
+  title: Modeling Text Difficulty Using CEFR Levels
+  domain: nlp
+  hypothesis: 'Linguistic factors such as lexical frequency, syntactic complexity,
+    and language model surprisal contribute more to perceived text difficulty, as
+    measured by CEFR levels, than treating text difficulty as a black-box machine
+    learning label.
+
+    '
+  background:
+    description: This project studies text difficulty as a linguistic property rather
+      than a black-box machine learning label. Using an existing dataset of English
+      sentences annotated with CEFR levels, we first analyze which linguistic factors,
+      such as lexical frequency, syntactic complexity, and language model surprisal,
+      contribute most to perceived difficulty. We compare traditional NLP features
+      with a pretrained BERT-based CEFR predictor and conduct diagnostic experiments
+      to understand model behavior.
+  metadata:
+    source: IdeaHub
+    source_url: https://hypogenic.ai/ideahub/idea/fX8u6JLRlsDz9QkeNaMm
+    idea_id: modeling_text_difficulty_using_20260209_235008_4c32624b
+    created_at: '2026-02-09T23:50:08.382927'
+    status: submitted
+    github_repo_name: cefr-text-difficulty-0907-claude
+    github_repo_url: https://github.com/Hypogenic-AI/cefr-text-difficulty-0907-claude
