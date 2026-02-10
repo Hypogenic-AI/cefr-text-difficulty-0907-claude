@@ -1,0 +1,10 @@
+PDF: /workspaces/cefr-text-difficulty-0907-claude/papers/arase2022_cefr_sp.pdf
+Total pages: 14
+Pages per chunk: 3
+
+Chunks:
+  arase2022_cefr_sp_chunk_001.pdf: pages 1-3
+  arase2022_cefr_sp_chunk_002.pdf: pages 4-6
+  arase2022_cefr_sp_chunk_003.pdf: pages 7-9
+  arase2022_cefr_sp_chunk_004.pdf: pages 10-12
+  arase2022_cefr_sp_chunk_005.pdf: pages 13-14

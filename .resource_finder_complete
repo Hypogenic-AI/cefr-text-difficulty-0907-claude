@@ -1,0 +1,12 @@
+Resource gathering complete.
+Date: 2026-02-10
+Topic: Modeling Text Difficulty Using CEFR Levels
+
+Deliverables:
+- literature_review.md (207 lines, comprehensive synthesis of 18 papers)
+- resources.md (531 lines, catalog of papers, datasets, code, tools, download scripts)
+- papers/ (18 PDFs + README.md)
+- papers/pages/ (chunked PDF pages for deep reading)
+- datasets/ (README.md, .gitignore, CEFR-SP train set downloaded, Kaggle instructions)
+- code/ (README.md, 3 repos cloned: CEFR-SP, lftk, UniversalCEFRScoring)
+- paper_search_results/ (search results JSONL + code_repositories_survey.json)

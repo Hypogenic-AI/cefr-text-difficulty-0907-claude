@@ -1,0 +1,129 @@
+\begin{thebibliography}{17}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Arase et~al.(2022)Arase, Uchida, and Kajiwara]{arase2022cefr}
+Yuki Arase, Satoru Uchida, and Tomoyuki Kajiwara.
+\newblock {CEFR}-based sentence difficulty annotation and assessment.
+\newblock In \emph{Proceedings of the 2022 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, pages 6206--6219. Association for
+  Computational Linguistics, 2022.
+
+\bibitem[Arnold et~al.(2018)Arnold, Ballier, Gaillat, and
+  Liss{\'o}n]{arnold2018predicting}
+Thomas Arnold, Nicolas Ballier, Thomas Gaillat, and Paula Liss{\'o}n.
+\newblock Predicting {CEFR} levels in learner {English} on the basis of metrics
+  and full texts.
+\newblock In \emph{Proceedings of the BEA Workshop}, pages 49--58. Association
+  for Computational Linguistics, 2018.
+
+\bibitem[Chen and Guestrin(2016)]{chen2016xgboost}
+Tianqi Chen and Carlos Guestrin.
+\newblock {XGBoost}: A scalable tree boosting system.
+\newblock In \emph{Proceedings of the 22nd ACM SIGKDD International Conference
+  on Knowledge Discovery and Data Mining}, pages 785--794. ACM, 2016.
+
+\bibitem[{Council of Europe}(2001)]{council2001common}
+{Council of Europe}.
+\newblock Common {European} framework of reference for languages: Learning,
+  teaching, assessment.
+\newblock \emph{Cambridge University Press}, 2001.
+
+\bibitem[Devlin et~al.(2019)Devlin, Chang, Lee, and Toutanova]{devlin2019bert}
+Jacob Devlin, Ming-Wei Chang, Kenton Lee, and Kristina Toutanova.
+\newblock {BERT}: Pre-training of deep bidirectional transformers for language
+  understanding.
+\newblock In \emph{Proceedings of the 2019 Conference of the North American
+  Chapter of the Association for Computational Linguistics (NAACL)}, pages
+  4171--4186. Association for Computational Linguistics, 2019.
+
+\bibitem[Fran{\c{c}}ois and Fairon(2012)]{francois2012ai}
+Thomas Fran{\c{c}}ois and C{\'e}drick Fairon.
+\newblock An ``{AI} readability'' formula for {French} as a foreign language.
+\newblock In \emph{Proceedings of the 2012 Joint Conference on Empirical
+  Methods in Natural Language Processing and Computational Natural Language
+  Learning (EMNLP-CoNLL)}, pages 466--477. Association for Computational
+  Linguistics, 2012.
+
+\bibitem[Fujinuma and Hagiwara(2021)]{fujinuma2021joint}
+Yoshinari Fujinuma and Masato Hagiwara.
+\newblock Joint prediction of word and document readability using graph
+  convolutional networks.
+\newblock In \emph{Proceedings of the 16th Workshop on Innovative Use of NLP
+  for Building Educational Applications (BEA)}, pages 258--266. Association for
+  Computational Linguistics, 2021.
+
+\bibitem[Hale(2001)]{hale2001probabilistic}
+John Hale.
+\newblock A probabilistic {Earley} parser as a psycholinguistic model.
+\newblock \emph{Proceedings of the Second Meeting of the North American Chapter
+  of the Association for Computational Linguistics (NAACL)}, pages 1--8, 2001.
+
+\bibitem[Imperial et~al.(2025)Imperial, Tack, Francois, and
+  Shardlow]{imperial2025universalcefr}
+Joseph~Marvin Imperial, Ana{\"i}s Tack, Thomas Francois, and Matthew Shardlow.
+\newblock {UniversalCEFR}: A universal benchmark for {CEFR}-level text
+  difficulty classification across languages.
+\newblock \emph{arXiv preprint arXiv:2502.XXXXX}, 2025.
+
+\bibitem[Khallaf and Sharoff(2021)]{khallaf2021automatic}
+Nouran Khallaf and Serge Sharoff.
+\newblock Automatic difficulty classification of {Arabic} sentences.
+\newblock In \emph{Proceedings of the Sixth Arabic Natural Language Processing
+  Workshop (WANLP)}, pages 105--114. Association for Computational Linguistics,
+  2021.
+
+\bibitem[Lagutina et~al.(2023)Lagutina, Lagutina, Boychuk, and
+  Nikiforova]{lagutina2023comparison}
+Nadezhda Lagutina, Ksenia Lagutina, Elena Boychuk, and Nadezhda Nikiforova.
+\newblock Comparison of machine learning and {BERT}-based methods for {CEFR}
+  level classification of {Russian} texts.
+\newblock \emph{Communications in Computer and Information Science}, 2023.
+
+\bibitem[Levy(2008)]{levy2008expectation}
+Roger Levy.
+\newblock Expectation-based syntactic comprehension.
+\newblock \emph{Cognition}, 106\penalty0 (3):\penalty0 1126--1177, 2008.
+
+\bibitem[Pil{\'a}n et~al.(2016)Pil{\'a}n, Volodina, and
+  Zesch]{pilan2016predicting}
+Iona Pil{\'a}n, Elena Volodina, and Torsten Zesch.
+\newblock Predicting proficiency levels in learner writings by transferring a
+  linguistic complexity model from expert-written coursebooks.
+\newblock In \emph{Proceedings of COLING 2016}, pages 2101--2111. Association
+  for Computational Linguistics, 2016.
+
+\bibitem[Pitler and Nenkova(2008)]{pitler2008revisiting}
+Emily Pitler and Ani Nenkova.
+\newblock Revisiting readability: A unified framework for predicting text
+  quality.
+\newblock In \emph{Proceedings of the 2008 Conference on Empirical Methods in
+  Natural Language Processing (EMNLP)}, pages 186--195. Association for
+  Computational Linguistics, 2008.
+
+\bibitem[Radford et~al.(2019)Radford, Wu, Child, Luan, Amodei, and
+  Sutskever]{radford2019language}
+Alec Radford, Jeffrey Wu, Rewon Child, David Luan, Dario Amodei, and Ilya
+  Sutskever.
+\newblock Language models are unsupervised multitask learners.
+\newblock Technical report, OpenAI, 2019.
+
+\bibitem[Vajjala and Meurers(2012)]{vajjala2012improving}
+Sowmya Vajjala and Detmar Meurers.
+\newblock On improving the accuracy of readability classification using
+  insights from second language acquisition.
+\newblock In \emph{Proceedings of the Seventh Workshop on Building Educational
+  Applications Using NLP}, pages 163--173. Association for Computational
+  Linguistics, 2012.
+
+\bibitem[Xia et~al.(2016)Xia, Kochmar, and Briscoe]{xia2016text}
+Menglin Xia, Ekaterina Kochmar, and Ted Briscoe.
+\newblock Text readability assessment for second language learners.
+\newblock In \emph{Proceedings of the 11th Workshop on Innovative Use of NLP
+  for Building Educational Applications (BEA)}, pages 12--22. Association for
+  Computational Linguistics, 2016.
+
+\end{thebibliography}

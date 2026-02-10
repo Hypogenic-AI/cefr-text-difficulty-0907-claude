@@ -1,0 +1,9 @@
+PDF: /workspaces/cefr-text-difficulty-0907-claude/papers/khallaf2021_arabic_cefr.pdf
+Total pages: 10
+Pages per chunk: 3
+
+Chunks:
+  khallaf2021_arabic_cefr_chunk_001.pdf: pages 1-3
+  khallaf2021_arabic_cefr_chunk_002.pdf: pages 4-6
+  khallaf2021_arabic_cefr_chunk_003.pdf: pages 7-9
+  khallaf2021_arabic_cefr_chunk_004.pdf: page 10

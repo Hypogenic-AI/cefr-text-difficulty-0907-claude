@@ -1,0 +1,88 @@
+\section{Methodology}
+\label{sec:method}
+
+\subsection{Dataset}
+\label{sec:dataset}
+
+We use the English portion of \cefrsp~\citep{arase2022cefr}, which contains 10,004 sentences annotated with \cefr levels A1--C2.
+Sentences are drawn from English language learning textbooks and educational materials.
+\Tabref{tab:data-dist} shows the class distribution.
+The dataset is heavily imbalanced: A1 and C2 have fewer than 250 samples each, while B1 and B2 together account for 66.3\% of the data.
+This imbalance motivates our use of \macrof as the primary metric and stratified cross-validation throughout.
+
+\begin{table}[t]
+\centering
+\caption{Class distribution of the \cefrsp English dataset.}
+\label{tab:data-dist}
+\small
+\begin{tabular}{@{}lrrrrrrr@{}}
+\toprule
+& A1 & A2 & B1 & B2 & C1 & C2 & Total \\
+\midrule
+Count & 124 & 1{,}271 & 3{,}305 & 3{,}330 & 1{,}744 & 230 & 10{,}004 \\
+\% & 1.2 & 12.7 & 33.0 & 33.3 & 17.4 & 2.3 & 100.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Feature Extraction}
+\label{sec:features}
+
+We extract 41 features organized into four groups.
+
+\para{Readability (7 features).}
+We compute seven standard readability formulas via \texttt{textstat}: Flesch Reading Ease, Flesch-Kincaid Grade Level, Coleman-Liau Index, Automated Readability Index (\ari), SMOG Index, Gunning Fog, and Dale-Chall.
+These formulas are composite indices of word and sentence length, providing a well-established baseline for difficulty estimation.
+
+\para{Lexical (11 features).}
+We measure token count, type count, type-token ratio (TTR), Guiraud's corrected TTR ($\text{types}/\sqrt{\text{tokens}}$), mean/max/standard deviation of word length, mean/max syllable count, proportion of long words ($>6$ characters), and proportion of rare words (out-of-vocabulary in spaCy).
+
+\para{Syntactic (16 features).}
+Using spaCy (\texttt{en\_core\_web\_sm}), we extract sentence count, mean/max sentence length, mean/max dependency tree depth, mean/max dependency distance, subordinate clause count and ratio, POS tag proportions (NOUN, VERB, ADJ, ADV, ADP, CONJ), and the number of unique POS tags.
+
+\para{Surprisal (7 features).}
+We compute \gptwo (117M parameters) per-token surprisal statistics: mean, max, min, standard deviation, and median surprisal (in bits), surprisal range (max $-$ min), and perplexity ($2^{\text{mean surprisal}}$).
+Each token's surprisal is defined as $-\log_2 P(w_t \mid w_1, \ldots, w_{t-1})$, the negative log-probability under the left-to-right language model~\citep{radford2019language}.
+
+\subsection{Interpretable Classifiers}
+\label{sec:classifiers}
+
+We train three classifiers on the 41 features using 5-fold stratified cross-validation:
+
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=2pt]
+    \item \textbf{Logistic Regression}: $L_2$-regularized ($C\!=\!1.0$), balanced class weights, max 1{,}000 iterations. Features are standardized to zero mean and unit variance.
+    \item \textbf{Random Forest}: 100 trees, max depth 15, balanced class weights.
+    \item \textbf{\xgb}: 100 trees, max depth 6, learning rate 0.1, GPU-accelerated histogram method~\citep{chen2016xgboost}.
+\end{itemize}
+
+\subsection{Feature Group Ablation}
+\label{sec:ablation}
+
+Using \xgb (the best feature-based model), we conduct two ablation experiments:
+(1)~\textbf{individual-group}: train with only one feature group at a time, measuring each group's standalone predictive power;
+(2)~\textbf{leave-one-group-out}: train with all features except one group, measuring each group's unique contribution via the \fone drop.
+
+\subsection{BERT Fine-Tuning}
+\label{sec:bert}
+
+We fine-tune \texttt{bert-base-uncased}~\citep{devlin2019bert} with a 6-class classification head.
+We use a max sequence length of 128 tokens, batch size of 64, learning rate of $2 \times 10^{-5}$ with linear warmup over 10\% of training steps, weight decay of 0.01, and train for 5 epochs per fold (selecting the best epoch by validation \macrof).
+We use the same 5-fold stratified splits as the feature-based models.
+
+\subsection{Diagnostic Experiments}
+\label{sec:diagnostics}
+
+\para{\bert probing.}
+We fit a ridge regression ($\alpha\!=\!1.0$) from standardized interpretable features to \bert's predicted class (argmax of logits) and report $R^2$ in 5-fold cross-validation.
+We also repeat this probing with each feature group separately to measure which dimensions \bert most relies on.
+
+\para{Error overlap analysis.}
+We categorize each sample into one of four groups: both models correct, \xgb-only correct, \bert-only correct, or both wrong.
+We also compute per-level accuracy for both models to identify where \bert's advantage concentrates.
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+
+Our primary metric is \macrof (averaged equally over six classes), which accounts for the severe class imbalance.
+We also report accuracy, \adjaccuracy (prediction within $\pm 1$ \cefr level), and quadratic weighted Cohen's $\kappa$.
+The majority-class baseline (always predicting B2) achieves \macrof = 0.083.

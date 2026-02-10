@@ -1,0 +1,72 @@
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What Makes Sentences Difficult?}
+\label{sec:what-makes-difficult}
+
+Our results support a multi-dimensional view of sentence difficulty, with three key dimensions emerging from the analysis.
+
+\para{Vocabulary complexity is the primary driver.}
+Word length, syllable count, and readability formulas---which are largely word-length proxies---dominate both feature correlation rankings (\tabref{tab:top-features}) and \xgb importance (\figref{fig:importance}).
+\ari alone achieves $\rho = 0.676$ with \cefr level and accounts for 18\% of \xgb's feature importance.
+Lexical features are also the strongest standalone group (\macrof = 0.394).
+This aligns with vocabulary acquisition research showing that lexical knowledge is the strongest predictor of reading comprehension~\citep{vajjala2012improving, pilan2016predicting}.
+
+\para{Contextual predictability adds unique signal.}
+\gptwo surprisal---which measures how unexpected each word is given its left context---provides the largest unique contribution to the feature model (drop = 0.023) despite modest individual performance (\macrof = 0.267).
+This indicates that difficulty involves not just \emph{what} words appear but \emph{how predictable} their appearance is.
+A sentence with common words in an unusual arrangement may be harder than a sentence with uncommon words in a formulaic pattern.
+This finding extends the results of \citet{xia2016text} and \citet{pitler2008revisiting}, who demonstrated the value of language model features for readability, by showing that neural surprisal provides orthogonal information to traditional features at the sentence level.
+
+\para{Syntactic complexity is largely redundant.}
+Once lexical and readability features are included, syntactic features add negligible information (drop $\approx$ 0.000).
+This may reflect that syntactic complexity at the sentence level correlates highly with sentence length, which is already captured by other features.
+Alternatively, spaCy's dependency measures may lack the resolution to capture the syntactic distinctions relevant to \cefr levels, such as specific subordinate clause types or argument structures.
+This contrasts with \citet{pilan2016predicting}, who found syntactic features more valuable---a difference that may stem from their document-level analysis, where syntactic patterns have more room to accumulate signal.
+
+\subsection{What Does \bert Know That Features Miss?}
+\label{sec:bert-advantage}
+
+The probing analysis reveals that 60\% of \bert's predictions can be linearly explained by interpretable features, leaving a substantial 40\% that reflects information beyond our feature inventory.
+Three observations help characterize this gap.
+
+First, \bert's largest per-level advantages are at A2 (+22.1\% accuracy) and C1 (+22.1\%)---levels where the distinction from neighbors (A1 vs.\ A2, B2 vs.\ C1) involves subtle semantic and pragmatic cues rather than surface complexity differences.
+At A2, learners transition from fixed phrases to productive sentence construction; at C1, texts move from explicitly structured arguments to implicit pragmatic reasoning.
+These transitions are difficult to capture with word-length or dependency-based features.
+
+Second, the probing coefficients reveal that \bert's behavior is best predicted by lexical diversity measures (number of types, Guiraud's index) rather than readability formulas, even though the latter correlate more strongly with \cefr labels.
+This suggests \bert develops an internal representation of vocabulary richness that goes beyond what surface statistics can measure.
+
+Third, the mean absolute error of \bert's predictions (0.363 levels) is substantially lower than \xgb's (0.499 levels), indicating that even when \bert makes errors, they are closer to the correct level---consistent with stronger ordinal awareness.
+
+\subsection{Implications for Practitioners}
+\label{sec:implications}
+
+Our findings have direct implications for building text difficulty assessment tools:
+
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=2pt]
+    \item \textbf{If interpretability is paramount}, \ari alone provides a strong single-feature baseline ($\rho = 0.676$).
+    Adding \gptwo surprisal features is the most cost-effective enrichment (largest unique \fone gain of 0.023).
+    \item \textbf{If accuracy is paramount}, fine-tuned \bert yields the strongest predictions.
+    The probing analysis shows that 60\% of its behavior can be post-hoc explained, providing some interpretability even for the neural model.
+    \item \textbf{For extremely small classes} (A1, C2), feature-based models may be more robust than \bert, which struggles with the 124-sample A1 class.
+\end{itemize}
+
+\subsection{Limitations}
+\label{sec:limitations}
+
+\para{Sentence-level analysis.}
+\cefr is naturally a text-level property.
+Sentence-level classification loses discourse coherence, topic effects, and cross-sentence patterns that contribute to perceived difficulty.
+The 8.9-point gap between features and \bert may narrow at the document level, where features can accumulate more signal~\citep{pilan2016predicting}.
+
+\para{English only.}
+Our results may not generalize to other languages, particularly those with richer morphology (where morphological features may contribute more) or different writing systems (where character-level features may be relevant).
+
+\para{Class imbalance.}
+A1 ($n = 124$) and C2 ($n = 230$) are too small for reliable evaluation.
+The high variance in per-class \fone for these levels suggests that results would be more stable with larger samples.
+
+\para{Model scope.}
+We tested only \texttt{bert-base-uncased} and \gptwo (117M).
+Larger models may yield better surprisal estimates or higher classification accuracy, potentially changing the feature-neural gap.

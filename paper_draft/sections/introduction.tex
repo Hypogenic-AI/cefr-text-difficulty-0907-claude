@@ -1,0 +1,33 @@
+\section{Introduction}
+\label{sec:intro}
+
+When an educator selects a reading passage for an intermediate language learner, the decision rests on an implicit understanding of \emph{what makes text difficult}: the vocabulary is too rare, the sentences are too long, the syntax is too nested.
+The Common European Framework of Reference for Languages (\cefr) formalizes this intuition into six proficiency levels (A1--C2) that describe what a learner at each stage can comprehend~\citep{council2001common}.
+Computational models that predict \cefr levels have clear practical value---they can power automated readability tools, assist curriculum designers, and personalize language learning platforms.
+
+Yet most recent work treats \cefr classification as a pure prediction task.
+A pretrained language model receives a text, outputs a label, and the job is done~\citep{arase2022cefr, khallaf2021automatic}.
+This black-box approach obscures the very information educators need most: \emph{which} linguistic factors drive difficulty, and \emph{how much} each factor contributes.
+A predicted label of ``B2'' tells a teacher nothing about whether the difficulty stems from rare vocabulary, complex syntax, or unpredictable word sequences.
+
+\para{Our main question.}
+We ask: {\bf can interpretable linguistic features explain most of the variance in \cefr sentence difficulty, and where does a fine-tuned \bert classifier capture information beyond these features?}
+
+We address this question through a systematic comparison on the \cefrsp English dataset~\citep{arase2022cefr}, which contains 10,004 sentences annotated with \cefr levels A1--C2.
+We extract 41 interpretable features across four groups---readability formulas, lexical complexity, syntactic complexity, and \gptwo surprisal---and train three feature-based classifiers (logistic regression, random forest, \xgb).
+We then fine-tune \bert as a neural baseline and conduct diagnostic experiments to understand the relationship between the two approaches.
+
+\para{Key findings.}
+Our best feature-based model (\xgb) achieves \macrof = 0.435, reaching 83\% of \bert's performance (\macrof = 0.524).
+A ridge regression probe reveals that 60\% of the variance in \bert's predicted labels can be linearly explained by our 41 features.
+Ablation analysis shows that \gptwo surprisal contributes the largest \emph{unique} information among feature groups (\fone drop of 0.023), despite being the weakest group in isolation---suggesting that contextual word predictability captures a dimension of difficulty orthogonal to traditional features.
+\bert's advantage concentrates on boundary \cefr levels (A2 and C1), where it improves accuracy by over 22 percentage points, indicating that these transitional levels require semantic or distributional cues that surface features miss.
+
+\para{Contributions.}
+We make the following contributions:
+\begin{itemize}[leftmargin=*,itemsep=0pt,topsep=2pt]
+    \item We conduct a systematic comparison of 41 interpretable linguistic features against fine-tuned \bert for sentence-level \cefr classification, quantifying the 8.9 \fone point gap between the two approaches.
+    \item We perform the first \bert probing analysis for \cefr, showing that 60\% of \bert's predictions are linearly explainable by interpretable features and identifying lexical diversity as the strongest predictor of \bert's behavior.
+    \item We demonstrate that \gptwo surprisal provides the largest unique contribution among feature groups via ablation, establishing neural surprisal as a valuable complement to classical readability features.
+    \item We provide a detailed error analysis showing where and why feature-based and neural models disagree, with actionable implications for building interpretable text difficulty tools.
+\end{itemize}

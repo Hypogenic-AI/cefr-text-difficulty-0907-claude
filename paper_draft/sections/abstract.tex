@@ -1,0 +1,9 @@
+\begin{abstract}
+Text difficulty assessment is central to language education, yet modern NLP often treats CEFR classification as a black-box prediction task, obscuring \emph{why} a text is difficult.
+We investigate what linguistic features drive sentence-level CEFR difficulty using the \cefrsp English dataset (10,004 sentences, A1--C2).
+We extract 41 interpretable features across four groups---readability formulas, lexical complexity, syntactic complexity, and neural language model surprisal---and compare feature-based classifiers against a fine-tuned \bert model.
+Our best feature-based model (\xgb, \macrof = 0.435) reaches 83\% of \bert's performance (\macrof = 0.524), and a ridge regression probe shows that 60\% of the variance in \bert's predictions can be explained by our interpretable features.
+Ablation studies reveal that surprisal features contribute the largest unique information (\fone drop = 0.023 when removed), while readability and lexical features are the strongest individual groups.
+\bert's advantage concentrates on distinguishing boundary CEFR levels (A2, C1, C2), suggesting it captures semantic or distributional cues beyond what classical features measure.
+Our analysis provides actionable guidance for building interpretable text difficulty tools and identifies where neural models add genuine value over linguistic features.
+\end{abstract}

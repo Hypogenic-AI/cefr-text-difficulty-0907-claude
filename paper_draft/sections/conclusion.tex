@@ -1,0 +1,17 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We systematically investigated what linguistic features drive \cefr difficulty at the sentence level, comparing 41 interpretable features against fine-tuned \bert on the \cefrsp English dataset (10,004 sentences, A1--C2).
+Five main findings emerge:
+
+\begin{enumerate}[leftmargin=*,itemsep=0pt,topsep=2pt]
+    \item \textbf{Lexical complexity and readability features are the strongest predictors}, with \ari alone achieving $\rho = 0.676$ with \cefr level and accounting for 18\% of \xgb feature importance.
+    \item \textbf{\gptwo surprisal provides the largest unique contribution} among feature groups (\fone drop = 0.023), suggesting that contextual word predictability captures a dimension of difficulty orthogonal to traditional features.
+    \item \textbf{\bert outperforms feature models by 8.9 \fone points}, with its largest advantages at boundary \cefr levels (A2, C1, C2) where semantic and pragmatic cues matter most.
+    \item \textbf{60\% of \bert's predictions are linearly explainable} by 41 interpretable features, leaving a substantial 40\% that likely reflects semantic and distributional complexity.
+    \item \textbf{Syntactic features are largely redundant} once lexical complexity is accounted for, at least at the sentence level with spaCy-based measures.
+\end{enumerate}
+
+These results suggest that text difficulty is primarily a lexical-statistical property, but full classification performance requires the contextual, semantic understanding that pretrained language models provide.
+Future work should investigate whether intermediate approaches---such as fine-tuning smaller language models with interpretable bottleneck layers or using neural features as additional inputs to feature-based models---can bridge the accuracy-interpretability gap.
+Extending this analysis to multiple languages and document-level classification would test the generality of our findings.

@@ -1,0 +1,15 @@
+Kaggle CEFR-Levelled English Texts
+====================================
+
+This dataset requires a Kaggle account and API key to download.
+
+Steps:
+1. Create a Kaggle account at https://www.kaggle.com
+2. Go to https://www.kaggle.com/settings and click "Create New Token"
+3. Save the downloaded kaggle.json to ~/.kaggle/kaggle.json
+4. Run:
+   pip install kaggle
+   kaggle datasets download -d amontgomerie/cefr-levelled-english-texts -p .
+   unzip cefr-levelled-english-texts.zip
+
+Dataset URL: https://www.kaggle.com/datasets/amontgomerie/cefr-levelled-english-texts

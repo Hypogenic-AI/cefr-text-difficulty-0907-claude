@@ -1,0 +1,36 @@
+\section{Related Work}
+\label{sec:related}
+
+\para{Feature-based readability and \cefr classification.}
+The tradition of modeling text difficulty with handcrafted linguistic features has deep roots.
+\citet{vajjala2012improving} extracted over 150 features motivated by second language acquisition theory---including lexical frequency, syntactic complexity, and psycholinguistic variables---and showed that lexical frequency was the single strongest predictor of \cefr-graded text difficulty.
+\citet{pilan2016predicting} confirmed this pattern for Swedish, finding that lexical features alone achieved F$_1$ = 0.80 at the document level, within one point of the full-feature model.
+At the sentence level, however, the gap widens: removing non-lexical features caused a 7-point drop, indicating that syntactic and other features carry more marginal information when text is short.
+\citet{xia2016text} reported that statistical language model features were the single best feature group for \cefr classification of Cambridge exam texts, achieving 0.714 accuracy as a standalone predictor.
+More recently, \citet{arnold2018predicting} used gradient-boosted trees on the EFCAMDAT corpus and found that word token and type counts were the most important features, with no LSTM advantage over the feature-based approach.
+
+\para{Neural approaches.}
+Pretrained transformers have become the dominant approach to \cefr classification.
+\citet{khallaf2021automatic} fine-tuned Arabic-\bert and achieved \macrof = 0.80, a 5-point improvement over SVM with engineered features.
+\citet{arase2022cefr} introduced the \cefrsp dataset and a prototype-based \bert classifier achieving \macrof = 0.845, substantially outperforming bag-of-words baselines.
+\citet{lagutina2023comparison} reported the smallest gap in the literature: SVC with stylometric features at 67\% accuracy versus \bert at 69\% for Russian texts.
+\citet{fujinuma2021joint} proposed a graph convolutional network that jointly modeled word-level and document-level readability, but ablation showed that \bert embeddings were essential to its performance.
+
+\para{Comparative studies.}
+The most informative studies directly compare feature-based and neural approaches.
+\citet{imperial2025universalcefr} evaluated models on 505,807 texts across 13 languages and found that fine-tuned XLM-R achieved 62.8\% \macrof versus 58.3\% for random forests with all features---a gap of 4.5 points.
+Notably, for Czech, the feature-based model outperformed XLM-R, demonstrating that the neural advantage is not universal.
+Zero-shot LLM prompting performed poorly (43.2\% \macrof), confirming that \cefr classification requires calibrated discrimination that general-purpose models lack.
+Across studies, the feature-neural gap ranges from 2 to 5 \fone points at the document level~\citep{lagutina2023comparison, khallaf2021automatic, arnold2018predicting}, suggesting that well-designed features capture most difficulty-relevant information.
+
+\para{Surprisal and readability.}
+Information-theoretic surprisal---the negative log-probability of a word given its context---is grounded in psycholinguistic theories of processing difficulty~\citep{hale2001probabilistic, levy2008expectation}.
+\citet{pitler2008revisiting} showed that vocabulary-based language model features correlated at $r = 0.45$ with human readability judgments, and that a combined model with discourse, syntax, and LM features achieved $R^2 = 0.776$.
+Despite this promise, neural language model surprisal (\eg from GPT-2 or BERT) has not been systematically evaluated for \cefr classification.
+Most prior work uses classical $n$-gram models~\citep{xia2016text, francois2012ai}.
+
+\para{Position of our work.}
+We extend this literature in three ways.
+First, we systematically evaluate \gptwo surprisal for \cefr classification, finding that it provides the largest unique contribution among feature groups despite modest standalone performance.
+Second, we conduct the first \bert probing analysis for \cefr, quantifying how much of \bert's behavior is explainable by interpretable features.
+Third, we provide detailed error-overlap analysis showing where and why feature-based and neural models disagree, going beyond accuracy tables to understand the nature of the performance gap.

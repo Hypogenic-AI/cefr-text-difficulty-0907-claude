@@ -1,0 +1,255 @@
+{
+  "survey_date": "2026-02-10",
+  "description": "Survey of code repositories related to CEFR text difficulty classification and readability assessment",
+  "repositories": [
+    {
+      "rank": 1,
+      "name": "LingFeat / LFTK",
+      "urls": {
+        "lingfeat": "https://github.com/brucewlee/lingfeat",
+        "lftk": "https://github.com/brucewlee/lftk"
+      },
+      "authors": "Bruce W. Lee",
+      "papers": [
+        "Pushing on Text Readability Assessment: A Transformer Meets Handcrafted Linguistic Features (EMNLP 2021)",
+        "LFTK: Handcrafted Features in Computational Linguistics (BEA @ ACL 2023)"
+      ],
+      "stars": {
+        "lingfeat": 132,
+        "lftk": 149
+      },
+      "language": "Python",
+      "framework": "spaCy",
+      "status": "lingfeat archived Aug 2025; LFTK is the active successor",
+      "description": "Comprehensive linguistic feature extraction toolkit. LingFeat extracts 255 features across 5 linguistic branches (Advanced Semantic, Discourse, Syntactic, Lexico-Semantic, Shallow Traditional). LFTK is the successor with 200+ features, faster extraction (<0.01 sec/word), and spaCy integration.",
+      "key_features": [
+        "255 handcrafted linguistic features (LingFeat) / 200+ (LFTK)",
+        "Readability formulas (Flesch-Kincaid, SMOG, Gunning Fog, Coleman-Liau, ARI)",
+        "Type-token ratio, lexical variation scores",
+        "Age-of-acquisition features",
+        "SubtlexUS word frequency features",
+        "POS counts, phrasal counts, tree structure features",
+        "Entity grid and local coherence",
+        "LDA-based semantic richness"
+      ],
+      "relevance": "Directly applicable for extracting handcrafted linguistic features for CEFR difficulty modeling. Covers lexical frequency, syntactic complexity, discourse coherence, and readability formulas. Can be combined with transformer models for hybrid approaches."
+    },
+    {
+      "rank": 2,
+      "name": "TextDescriptives",
+      "url": "https://github.com/HLasse/TextDescriptives",
+      "authors": "Lasse Hansen et al.",
+      "paper": "TextDescriptives: A Python package for calculating a large variety of metrics from text (2023)",
+      "stars": 359,
+      "language": "Python (86.3%)",
+      "framework": "spaCy v3",
+      "status": "Actively maintained, v2.8.4 (Dec 2024)",
+      "description": "Modern spaCy v3 pipeline component for calculating text metrics including readability, descriptive statistics, dependency distance, POS proportions, coherence, information theory, and quality metrics.",
+      "key_features": [
+        "Readability: Flesch Reading Ease, Flesch-Kincaid Grade, SMOG, Gunning Fog, Coleman-Liau, ARI, LIX, RIX",
+        "Descriptive statistics: token/sentence length, syllable counts",
+        "Dependency distance metrics (syntactic complexity proxy)",
+        "POS proportions",
+        "Semantic coherence between sentences",
+        "Information theory metrics",
+        "Text quality assessment",
+        "Web-based demo available",
+        "Multilingual support via spaCy models"
+      ],
+      "relevance": "Best modern tool for integrating readability and linguistic metrics into spaCy pipelines. Dependency distance is a strong proxy for syntactic complexity. Coherence metrics useful for discourse-level difficulty. Actively maintained with good documentation."
+    },
+    {
+      "rank": 3,
+      "name": "CEFR-SP (CEFR-based Sentence Profile)",
+      "url": "https://github.com/yukiar/CEFR-SP",
+      "authors": "Yuki Arase, Satoru Uchida, Tomoyuki Kajiwara",
+      "papers": [
+        "CEFR-Based Sentence Difficulty Annotation and Assessment (EMNLP 2022)",
+        "Profiling English sentences based on CEFR levels (ITL Journal 2024)"
+      ],
+      "stars": 56,
+      "language": "Python (98.5%), Shell (1.5%)",
+      "framework": "Python",
+      "status": "Stable; last major update ~2022-2024",
+      "description": "17k English sentences annotated with CEFR levels by English-education professionals. Includes both the corpus and sentence-level CEFR assessment code. Achieved macro-F1 of 84.5% on level assessment.",
+      "key_features": [
+        "17k CEFR-annotated English sentences",
+        "Sentence-level CEFR difficulty assessment model",
+        "Professional annotation by English educators",
+        "Criterial feature analysis between adjacent CEFR levels",
+        "Macro-F1 of 84.5% on CEFR level classification"
+      ],
+      "relevance": "Directly provides CEFR-labeled sentence data and a baseline assessment model. Essential dataset for training/evaluating CEFR sentence-level classifiers. The criterial feature analysis informs which features distinguish adjacent levels."
+    },
+    {
+      "rank": 4,
+      "name": "ReadMe++ (readmepp)",
+      "url": "https://github.com/tareknaous/readme",
+      "authors": "Tarek Naous, Michael J. Ryan, Anton Lavrouk, Mohit Chandra, Wei Xu",
+      "paper": "ReadMe++: Benchmarking Multilingual Language Models for Multi-Domain Readability Assessment (2023)",
+      "stars": 12,
+      "language": "Python",
+      "framework": "HuggingFace Transformers, PyTorch",
+      "status": "Stable; created Nov 2023",
+      "description": "Multilingual multi-domain readability assessment dataset (9,757 sentences in Arabic, English, French, Hindi, Russian from 112 sources) with CEFR annotations (1-6 scale). Includes pip-installable package and fine-tuned BERT models on HuggingFace.",
+      "key_features": [
+        "9,757 CEFR-annotated sentences across 5 languages",
+        "112 diverse data sources (multi-domain)",
+        "pip-installable package: pip install readmepp",
+        "Fine-tuned BERT models on HuggingFace (tareknaous namespace)",
+        "Rank-and-Rate annotation methodology",
+        "Benchmarks for supervised, unsupervised, and few-shot settings",
+        "Cross-lingual transfer evaluation"
+      ],
+      "relevance": "Provides ready-to-use CEFR readability prediction models via pip install. Multilingual and multi-domain coverage makes it useful for generalization studies. The rank-and-rate annotation approach is methodologically interesting."
+    },
+    {
+      "rank": 5,
+      "name": "UniversalCEFR",
+      "urls": {
+        "github_org": "https://github.com/UniversalCEFR",
+        "website": "https://universalcefr.github.io/",
+        "huggingface": "https://huggingface.co/UniversalCEFR"
+      },
+      "authors": "Joseph Marvin Imperial, Abdullah Barayan, Regina Stodden, Rodrigo Wilkens, et al.",
+      "paper": "UniversalCEFR: Enabling Open Multilingual Research on Language Proficiency Assessment (EMNLP 2025)",
+      "stars": "N/A (organization)",
+      "language": "Python",
+      "framework": "HuggingFace, various",
+      "status": "Published at EMNLP 2025; data on HuggingFace",
+      "description": "Largest standardized open multilingual CEFR dataset: 505,807 texts across 13 languages and 4 scripts, consolidated from 26 existing corpora. Includes benchmark experiments with linguistic features, fine-tuned LLMs, and descriptor-based prompting.",
+      "key_features": [
+        "505,807 CEFR-labeled texts across 13 languages",
+        "26 source corpora consolidated and standardized",
+        "Structured JSON format with 8 metadata fields per instance",
+        "Benchmark experiments: linguistic features, fine-tuning, prompting",
+        "4 scripts: Latin, Cyrillic, Arabic, Devanagari",
+        "Available on HuggingFace for download"
+      ],
+      "relevance": "The most comprehensive multilingual CEFR dataset available. Essential for training and evaluating CEFR classifiers at scale. Benchmark results provide strong baselines. The standardized format facilitates reproducible research."
+    },
+    {
+      "rank": 6,
+      "name": "surprisal",
+      "url": "https://github.com/aalok-sathe/surprisal",
+      "authors": "Aalok Sathe",
+      "stars": "N/A",
+      "language": "Python",
+      "framework": "HuggingFace Transformers, KenLM",
+      "status": "Actively maintained",
+      "description": "Unified interface for computing surprisal (log probabilities) from language models. Supports causal LMs (GPT-2, LLaMA), Petals distributed models, and KenLM n-gram models.",
+      "key_features": [
+        "Surprisal computation from neural LMs (GPT-2, LLaMA, etc.)",
+        "KenLM n-gram model support",
+        "Petals distributed model support",
+        "Unified API across model types",
+        "pip installable with optional extras"
+      ],
+      "relevance": "Enables computing language model surprisal as a text difficulty feature. Surprisal correlates with processing difficulty and can serve as a powerful feature for CEFR classification. Supports both neural and n-gram models."
+    },
+    {
+      "rank": 7,
+      "name": "textstat",
+      "url": "https://github.com/textstat/textstat",
+      "authors": "textstat contributors",
+      "stars": "N/A (widely used)",
+      "language": "Python",
+      "framework": "Standalone (no NLP library dependency)",
+      "status": "Actively maintained",
+      "description": "Lightweight Python package for calculating readability statistics. Implements all major readability formulas. Multilingual support for syllable calculation.",
+      "key_features": [
+        "Flesch Reading Ease, Flesch-Kincaid Grade",
+        "SMOG Index, Coleman-Liau Index",
+        "Automated Readability Index",
+        "Dale-Chall Readability Score",
+        "Gunning Fog Index",
+        "Linsear Write Formula",
+        "Difficult words count",
+        "text_standard (consensus grade level)",
+        "Multilingual syllable support"
+      ],
+      "relevance": "Simple, dependency-free baseline readability computation. Useful for quick feature extraction without spaCy overhead. Good for computing traditional readability indices as baseline features in a CEFR classifier."
+    },
+    {
+      "rank": 8,
+      "name": "CEFR-English-Level-Predictor",
+      "url": "https://github.com/AMontgomerie/CEFR-English-Level-Predictor",
+      "authors": "Adam Montgomerie",
+      "stars": "N/A",
+      "language": "Python",
+      "framework": "scikit-learn, HuggingFace Transformers, Streamlit",
+      "status": "Stable",
+      "description": "End-to-end NLP system for predicting CEFR reading difficulty levels. Compares XGBoost, SVC, Random Forest, Decision Tree, and fine-tuned BERT/DeBERTa. XGBoost achieved ~71% accuracy, outperforming transformer models on 1,500 example texts.",
+      "key_features": [
+        "Full CEFR classification pipeline",
+        "XGBoost model outperforming transformers (~71% accuracy)",
+        "Fine-tuned BERT-base and DeBERTa-base experiments",
+        "Streamlit web app for inference",
+        "Docker deployment support",
+        "1,500 texts across 6 CEFR levels"
+      ],
+      "relevance": "Provides a complete reference implementation of CEFR text classification. The finding that XGBoost outperforms transformers on small data is informative for our modeling approach. Streamlit app provides a deployment template."
+    }
+  ],
+  "additional_resources": [
+    {
+      "name": "OneStopEnglishCorpus (Vajjala)",
+      "url": "https://github.com/nishkalavallabhi/OneStopEnglishCorpus",
+      "description": "Three-level readability corpus (elementary/intermediate/advanced) with sentence alignments. By Sowmya Vajjala."
+    },
+    {
+      "name": "UniversalCEFRScoring (Vajjala & Rama)",
+      "url": "https://github.com/nishkalavallabhi/UniversalCEFRScoring",
+      "description": "Cross-lingual CEFR classification experiments for German, Italian, Czech using UDPipe features."
+    },
+    {
+      "name": "textcomplexity",
+      "url": "https://github.com/tsproisl/textcomplexity",
+      "description": "Linguistic and stylistic complexity measures including lexical variability, evenness, rarity, and syntactic measures."
+    },
+    {
+      "name": "LingX",
+      "url": "https://github.com/ContentSide/LingX",
+      "description": "Psycholinguistic complexity metrics (IDT, DLT) using Stanza dependency parsing."
+    },
+    {
+      "name": "neural-complexity",
+      "url": "https://github.com/vansky/neural-complexity",
+      "description": "Neural LM for incremental processing complexity (surprisal, entropy, entropy reduction)."
+    },
+    {
+      "name": "cefrpy",
+      "url": "https://github.com/Maximax67/cefrpy",
+      "description": "Lightweight Python module for word-level CEFR analysis with spaCy integration."
+    },
+    {
+      "name": "Words-CEFR-Dataset",
+      "url": "https://github.com/Maximax67/Words-CEFR-Dataset",
+      "description": "Dataset mapping English words to CEFR levels based on CEFR-J, lemmas, POS, and Google N-gram frequency."
+    },
+    {
+      "name": "Linguistic-Features-for-Readability",
+      "url": "https://github.com/TovlyDeutsch/Linguistic-Features-for-Readability",
+      "description": "Code for 'Linguistic Features for Readability Assessment' (Deutsch, Jasbi, Shieber 2020). Based on Vajjala's feature code."
+    },
+    {
+      "name": "sent_cefr (Pilan)",
+      "url": "https://github.com/IldikoPilan/sent_cefr",
+      "description": "Small corpus of sentences with CEFR-level annotations for language learning."
+    },
+    {
+      "name": "TRUNAJOD",
+      "url": "https://github.com/dpalmasan/TRUNAJOD2.0",
+      "description": "Text complexity library built on spaCy. Parse tree similarity, semantic coherence, synonym overlap, emotion lexicon. Primarily Spanish."
+    }
+  ],
+  "not_found": {
+    "CALM_Malik_2024": {
+      "paper": "From Tarzan to Tolkien: Controlling the Language Proficiency Level of LLMs for Content Generation (ACL 2024 Findings)",
+      "authors": "Ali Malik, Stephen Mayhew, Christopher Piech, Klinton Bicknell (Stanford/Duolingo)",
+      "note": "No public GitHub repository found. The paper describes CaLM (CEFR-Aligned Language Model) using PPO fine-tuning of LLaMA2-7B and Mistral-7B, but code does not appear to be publicly released.",
+      "arxiv": "https://arxiv.org/abs/2406.03030",
+      "acl_anthology": "https://aclanthology.org/2024.findings-acl.926/"
+    }
+  }
+}

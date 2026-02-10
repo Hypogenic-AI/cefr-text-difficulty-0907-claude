@@ -1,0 +1,9 @@
+PDF: /workspaces/cefr-text-difficulty-0907-claude/papers/pilan2016_readable_read.pdf
+Total pages: 12
+Pages per chunk: 3
+
+Chunks:
+  pilan2016_readable_read_chunk_001.pdf: pages 1-3
+  pilan2016_readable_read_chunk_002.pdf: pages 4-6
+  pilan2016_readable_read_chunk_003.pdf: pages 7-9
+  pilan2016_readable_read_chunk_004.pdf: pages 10-12

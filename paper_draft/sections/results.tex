@@ -1,0 +1,208 @@
+\section{Results}
+\label{sec:results}
+
+\subsection{Feature Correlations with \cefr Level}
+\label{sec:correlations}
+
+All 41 features show statistically significant Spearman correlations with ordinal \cefr level ($p < 0.001$).
+\Tabref{tab:top-features} presents the top 10 features by absolute correlation.
+Readability formulas dominate the rankings: \ari achieves the highest correlation ($\rho = 0.676$), followed by Flesch-Kincaid Grade ($\rho = 0.652$) and Gunning Fog ($\rho = 0.636$).
+Among non-readability features, max word length ($\rho = 0.584$, lexical) and max sentence length ($\rho = 0.523$, syntactic) rank highest.
+
+At the group level, readability features have the highest mean $|\rho|$ (0.607), followed by lexical (0.491), surprisal (0.300), and syntactic (0.290).
+Despite having the most features ($n\!=\!16$), the syntactic group has the lowest average correlation, suggesting that individual syntactic measures are less directly associated with \cefr level than lexical or readability measures.
+
+\begin{table}[t]
+\centering
+\caption{Top 10 features by Spearman correlation ($\rho$) with ordinal \cefr level. All correlations are significant at $p < 0.001$.}
+\label{tab:top-features}
+\small
+\begin{tabular}{@{}rlrl@{}}
+\toprule
+Rank & Feature & $\rho$ & Group \\
+\midrule
+1 & automated\_readability\_index & 0.676 & Readability \\
+2 & flesch\_kincaid\_grade & 0.652 & Readability \\
+3 & gunning\_fog & 0.636 & Readability \\
+4 & coleman\_liau\_index & 0.605 & Readability \\
+5 & smog\_index & 0.599 & Readability \\
+6 & flesch\_reading\_ease & $-$0.588 & Readability \\
+7 & max\_word\_length & 0.584 & Lexical \\
+8 & max\_syllables & 0.540 & Lexical \\
+9 & std\_word\_length & 0.531 & Lexical \\
+10 & max\_sent\_length & 0.523 & Syntactic \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Classifier Performance}
+\label{sec:clf-results}
+
+\Tabref{tab:model-comparison} presents the main results.
+All models vastly outperform the majority-class baseline (\macrof = 0.083).
+Random Forest and \xgb perform comparably (\macrof $\approx$ 0.435), both outperforming logistic regression (0.390), indicating that non-linear classifiers capture feature interactions that linear models miss.
+
+\bert achieves \macrof = 0.524, an 8.9-point improvement over the best feature-based model.
+This gap is larger than the 2--5 points typically reported in document-level \cefr studies~\citep{lagutina2023comparison, khallaf2021automatic}, likely because sentence-level classification provides less textual context for feature-based approaches to exploit.
+\adjaccuracy is high across all models ($> 89\%$), indicating that errors concentrate on neighboring \cefr levels rather than large jumps.
+\bert's quadratic weighted $\kappa$ of 0.814 indicates strong ordinal agreement, well above the feature models (0.678--0.691).
+
+\begin{table}[t]
+\centering
+\caption{Classifier performance (mean $\pm$ std over 5 folds). Best results in \textbf{bold}.}
+\label{tab:model-comparison}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Model & Macro \fone & Accuracy & Adj.\ Acc. & QW $\kappa$ \\
+\midrule
+Majority baseline & 0.083 & --- & --- & --- \\
+Logistic Regression & 0.390 {\scriptsize $\pm$ .005} & 0.449 {\scriptsize $\pm$ .007} & 0.897 & 0.678 \\
+Random Forest & 0.436 {\scriptsize $\pm$ .017} & 0.534 {\scriptsize $\pm$ .004} & 0.961 & 0.691 \\
+\xgb & 0.435 {\scriptsize $\pm$ .018} & 0.539 {\scriptsize $\pm$ .011} & 0.963 & 0.685 \\
+\bert & {\bf 0.524} {\scriptsize $\pm$ .043} & {\bf 0.644} {\scriptsize $\pm$ .011} & {\bf 0.993} & {\bf 0.814} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Feature Group Ablation}
+\label{sec:ablation-results}
+
+\Tabref{tab:ablation} presents the ablation results.
+The individual-group analysis reveals that lexical features are the strongest standalone group (\macrof = 0.394), narrowly ahead of readability (0.380).
+Syntactic features (0.350) and surprisal (0.267) are weaker in isolation.
+
+The leave-one-group-out analysis reveals a crucial asymmetry.
+Readability features are strong individually but contribute almost no \emph{unique} information when other features are present (drop = 0.001), because readability formulas are composites of word and sentence length---information already captured by lexical and syntactic features.
+In contrast, surprisal features are weak individually but provide the \textbf{largest unique contribution} (drop = 0.023).
+This supports the hypothesis that \gptwo surprisal captures a dimension of difficulty---contextual word predictability, collocational patterns---that is orthogonal to traditional lexical and syntactic features.
+Lexical features contribute moderate unique information (drop = 0.013), while syntactic features add essentially nothing beyond what other groups provide (drop $\approx$ 0.000).
+
+\begin{table}[t]
+\centering
+\caption{Feature group ablation using \xgb. \emph{Individual}: trained on one group only. \emph{Leave-one-out}: trained on all groups except one. The drop column shows the \fone decrease from the full model (0.435).}
+\label{tab:ablation}
+\small
+\begin{tabular}{@{}lccccc@{}}
+\toprule
+& & \multicolumn{2}{c}{Individual} & \multicolumn{2}{c}{Leave-one-out} \\
+\cmidrule(lr){3-4} \cmidrule(lr){5-6}
+Group & $n$ & Macro \fone & & Macro \fone & Drop \\
+\midrule
+Lexical & 11 & 0.394 {\scriptsize $\pm$ .007} & & 0.422 {\scriptsize} & $-$0.013 \\
+Readability & 7 & 0.380 {\scriptsize $\pm$ .011} & & 0.434 {\scriptsize} & $-$0.001 \\
+Syntactic & 16 & 0.350 {\scriptsize $\pm$ .015} & & 0.435 {\scriptsize} & $-$0.000 \\
+Surprisal & 7 & 0.267 {\scriptsize $\pm$ .010} & & 0.412 {\scriptsize} & $-${\bf 0.023} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Feature Importance}
+\label{sec:importance}
+
+\xgb feature importance (by gain) confirms the dominance of readability and lexical features (\figref{fig:importance}).
+\ari alone accounts for 18\% of total feature importance, consistent with its highest single-feature correlation ($\rho = 0.676$).
+Among the top 10 features, four are readability formulas, three are lexical, two are surprisal (surprisal range and min surprisal), and one is syntactic (mean sentence length).
+The appearance of surprisal features in the top 10 despite their low standalone \fone underscores their complementary role: they provide information that other features do not, making them valuable in the full model even though they cannot predict \cefr well alone.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{../figures/xgboost_feature_importance.png}
+\caption{\xgb feature importance (gain). \ari dominates at 18\% of total importance. Surprisal features appear in the top 10 despite weak standalone performance, confirming their complementary value.}
+\label{fig:importance}
+\end{figure}
+
+\subsection{\bert Probing}
+\label{sec:probing}
+
+A ridge regression from 41 interpretable features to \bert's predicted class achieves $R^2 = 0.601 \pm 0.024$ in cross-validation.
+This means 60\% of the variance in \bert's predictions can be linearly explained by our features.
+
+Group-level probing (\tabref{tab:probing}) shows that readability and lexical features each explain about 55\% of \bert's behavior individually, while syntactic features explain 43\% and surprisal 29\%.
+Interestingly, the features with the largest ridge coefficients for predicting \bert's behavior are lexical diversity measures (number of types: $|\beta| = 0.490$; Guiraud's index: $|\beta| = 0.465$), not the readability formulas that have the highest raw correlations with \cefr labels.
+This suggests that \bert attends more to vocabulary richness than to formula-based indices.
+
+\begin{table}[t]
+\centering
+\caption{\bert probing $R^2$: variance in \bert's predicted class explained by each feature group (ridge regression, 5-fold CV).}
+\label{tab:probing}
+\small
+\begin{tabular}{@{}lc@{}}
+\toprule
+Feature Group & $R^2$ \\
+\midrule
+Readability & 0.546 \\
+Lexical & 0.544 \\
+Syntactic & 0.429 \\
+Surprisal & 0.286 \\
+\midrule
+All (41 features) & {\bf 0.601} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The remaining 40\% of unexplained variance likely reflects semantic content and word choice patterns not captured by surface features, contextual word difficulty (the same word in different contexts), discourse coherence, and distributional patterns learned during pretraining.
+
+\subsection{Error Analysis}
+\label{sec:errors}
+
+\para{Prediction agreement.}
+\Tabref{tab:agreement} breaks down prediction agreement between \xgb and \bert.
+\bert is correct on 24.0\% of samples where \xgb fails, while \xgb is correct on only 13.4\% where \bert fails.
+This asymmetry confirms that \bert has a genuine advantage, not merely different errors.
+Both models fail on 22.2\% of samples, representing cases that are difficult regardless of approach.
+
+\begin{table}[t]
+\centering
+\caption{Prediction agreement between \xgb and \bert (10,004 samples).}
+\label{tab:agreement}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Category & Count & \% \\
+\midrule
+Both correct & 4{,}046 & 40.4 \\
+\xgb only correct & 1{,}343 & 13.4 \\
+\bert only correct & 2{,}397 & 24.0 \\
+Both wrong & 2{,}218 & 22.2 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\para{Per-level analysis.}
+\Tabref{tab:per-level} and \figref{fig:per-class} present per-level results.
+A1 is the only level where \xgb outperforms \bert (\fone 0.273 vs.\ 0.167), likely because the 124-sample class is too small for \bert to learn a reliable representation, while \xgb's handcrafted features (very short sentences, simple vocabulary) provide a more robust signal.
+
+\bert's largest advantages are at A2 (+22.1\% accuracy) and C1 (+22.1\% accuracy)---the boundary levels between beginner/intermediate and advanced/proficient.
+These levels require nuanced distinctions that surface features capture poorly.
+C2 is difficult for both models (\xgb: 13\% accuracy, \bert: 32\%), reflecting both the small sample size ($n = 230$) and the inherent difficulty of distinguishing C2 from C1 at the sentence level.
+
+Both models exhibit the adjacent-confusion pattern: errors concentrate on neighboring levels (A2$\leftrightarrow$B1, B1$\leftrightarrow$B2, B2$\leftrightarrow$C1), confirming the ordinal nature of \cefr difficulty.
+
+\begin{table}[t]
+\centering
+\caption{Per-level \fone and accuracy for \xgb and \bert. $\Delta$ shows \bert's accuracy advantage. Best per-level \fone in \textbf{bold}.}
+\label{tab:per-level}
+\small
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+& \multicolumn{2}{c}{\fone} & \multicolumn{3}{c}{Accuracy} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-6}
+Level & \xgb & \bert & \xgb & \bert & $\Delta$ & $n$ \\
+\midrule
+A1 & {\bf 0.273} & 0.167 & 0.177 & 0.113 & $-$0.065 & 124 \\
+A2 & 0.546 & {\bf 0.637} & 0.485 & 0.707 & +0.221 & 1{,}271 \\
+B1 & 0.583 & {\bf 0.660} & 0.607 & 0.670 & +0.063 & 3{,}305 \\
+B2 & 0.554 & {\bf 0.650} & 0.607 & 0.650 & +0.043 & 3{,}330 \\
+C1 & 0.442 & {\bf 0.647} & 0.397 & 0.619 & +0.221 & 1{,}744 \\
+C2 & 0.210 & {\bf 0.385} & 0.130 & 0.322 & +0.191 & 230 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.85\linewidth]{../figures/per_class_f1_comparison.png}
+\caption{Per-class \fone for \xgb and \bert. \bert outperforms on all levels except A1 ($n\!=\!124$), with the largest gains at the boundary levels A2 and C1.}
+\label{fig:per-class}
+\end{figure}

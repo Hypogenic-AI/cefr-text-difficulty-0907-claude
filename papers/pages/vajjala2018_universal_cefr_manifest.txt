@@ -1,0 +1,8 @@
+PDF: /workspaces/cefr-text-difficulty-0907-claude/papers/vajjala2018_universal_cefr.pdf
+Total pages: 7
+Pages per chunk: 3
+
+Chunks:
+  vajjala2018_universal_cefr_chunk_001.pdf: pages 1-3
+  vajjala2018_universal_cefr_chunk_002.pdf: pages 4-6
+  vajjala2018_universal_cefr_chunk_003.pdf: page 7

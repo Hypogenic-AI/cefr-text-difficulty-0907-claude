@@ -1,0 +1,961 @@
+You are an academic paper writer. Generate a complete NEURIPS style paper
+based on the experiment results provided.
+
+════════════════════════════════════════════════════════════════════════════════
+                         IMPORTANT: BEFORE YOU START
+════════════════════════════════════════════════════════════════════════════════
+
+Before writing any content, you MUST complete these steps:
+
+1. READ THE SKILL: Review the paper-writer skill at templates/skills/paper-writer/SKILL.md
+2. READ THE STYLE GUIDE: Study templates/paper_writing/lab_style_guide.md carefully
+3. REVIEW EXAMPLES: Browse paper_examples/ for formatting and language patterns:
+   - Look at sections/1.introduction.tex for language style
+   - Look at tables/*.tex for table formatting
+   - Look at commands/*.tex for macro usage
+4. USE COMMAND TEMPLATES: Copy templates/paper_writing/commands/ to paper_draft/commands/
+
+CRITICAL: Reference example papers for FORMATTING and LANGUAGE STYLE only.
+Do NOT copy content, phrasing, or narrative structure from the example papers.
+The examples are in a different research domain - focus only on presentation style.
+
+════════════════════════════════════════════════════════════════════════════════
+                            EXPERIMENT REPORT
+════════════════════════════════════════════════════════════════════════════════
+
+# Modeling Text Difficulty Using CEFR Levels: An Interpretable Feature Analysis
+
+## Abstract
+
+We investigate what makes text difficult by examining linguistic features that predict CEFR (Common European Framework of Reference) proficiency levels at the sentence level. Using the CEFR-SP English dataset (10,004 sentences, A1–C2), we extract 41 interpretable linguistic features across four groups—readability formulas, lexical complexity, syntactic complexity, and neural language model surprisal—and compare feature-based classifiers against a fine-tuned BERT model. Our best feature-based model (XGBoost, macro F1 = 0.435) reaches 83% of BERT&#39;s performance (F1 = 0.524), and a ridge regression probe shows that 60% of the variance in BERT&#39;s predictions can be explained by our interpretable features. Ablation studies reveal that surprisal features contribute the largest unique information (F1 drop = 0.023 when removed), while readability and lexical features are the strongest individual groups. BERT&#39;s advantage concentrates on distinguishing intermediate levels (A2 vs. B1, C1 vs. C2), suggesting it captures discourse-level or distributional cues beyond what classical features measure.
+
+## 1. Introduction
+
+### 1.1 Motivation
+
+Text difficulty assessment is central to language education, yet much recent NLP work treats CEFR classification as a pure prediction task—feeding text into a pretrained language model and accepting the label. This &#34;black-box&#34; approach obscures *why* a text is difficult. Educators, curriculum designers, and language learners benefit far more from knowing *which* linguistic factors drive difficulty than from a single predicted label.
+
+Understanding the contribution of lexical frequency, syntactic complexity, and language model surprisal to CEFR levels can inform:
+- Pedagogical material design (selecting texts at appropriate difficulty)
+- Automated readability tools with interpretable outputs
+- Linguistic theory about the dimensions of language proficiency
+
+### 1.2 Research Question
+
+**Can interpretable linguistic features explain most of the variance in CEFR sentence difficulty, and where does a fine-tuned BERT classifier capture information beyond these features?**
+
+### 1.3 Hypotheses
+
+We decompose this question into five testable sub-hypotheses:
+
+| ID | Hypothesis | Verdict |
+|----|-----------|---------|
+| H1 | Readability features are the single strongest predictor group | **Supported** (readability: F1=0.380; but lexical close at 0.394) |
+| H2 | Adding syntactic + surprisal features improves over the best single group | **Supported** (full model F1=0.435 vs. best single group 0.394) |
+| H3 | Feature-based model achieves within 5 F1 points of BERT | **Not supported** (gap = 8.9 F1 points) |
+| H4 | &gt;70% of BERT&#39;s variance explained by features | **Not supported** (R² = 0.601, i.e., 60%) |
+| H5 | BERT&#39;s advantage concentrates on adjacent-level distinctions | **Partially supported** (largest gains at A2 and C1/C2, not just adjacent) |
+
+### 1.4 Novelty
+
+Three gaps in the existing literature motivate this study:
+
+1. **Neural surprisal under-explored for CEFR**: Most feature-based CEFR work uses classical n-gram LMs. We systematically measure GPT-2 surprisal&#39;s contribution at the sentence level.
+2. **BERT probing for CEFR is missing**: While BERT achieves strong CEFR performance, no prior work quantifies how much of its behavior is explainable by interpretable linguistic features via regression probing.
+3. **No direct error-overlap analysis**: Prior studies compare accuracy tables but rarely analyze where and why feature-based and neural models disagree.
+
+## 2. Data
+
+### 2.1 CEFR-SP Dataset
+
+We use the English portion of CEFR-SP (Arase et al., 2022), containing 10,004 sentences annotated with CEFR levels A1–C2. Sentences are drawn from English language learning textbooks and educational materials.
+
+| Level | Count | Percentage |
+|-------|-------|------------|
+| A1 | 124 | 1.2% |
+| A2 | 1,271 | 12.7% |
+| B1 | 3,305 | 33.0% |
+| B2 | 3,330 | 33.3% |
+| C1 | 1,744 | 17.4% |
+| C2 | 230 | 2.3% |
+
+The distribution is heavily imbalanced: A1 and C2 have fewer than 250 samples each, while B1 and B2 dominate with over 6,600 combined. This imbalance is a known challenge (Xia et al., 2016) and motivates our use of macro F1 as the primary metric and stratified cross-validation.
+
+![Class Distribution](figures/class_distribution.png)
+
+## 3. Methods
+
+### 3.1 Feature Extraction
+
+We extract 41 features across four groups:
+
+**Readability (7 features)**: Traditional readability formulas via `textstat`: Flesch Reading Ease, Flesch-Kincaid Grade, Coleman-Liau Index, Automated Readability Index (ARI), SMOG Index, Gunning Fog, Dale-Chall.
+
+**Lexical (11 features)**: Token/type counts, type-token ratio (TTR), Guiraud&#39;s corrected TTR, mean/max/std word length, mean/max syllable count, proportion of long words (&gt;6 chars), proportion of rare words (OOV in spaCy).
+
+**Syntactic (16 features)**: Sentence count, mean/max sentence length, mean/max dependency tree depth, mean/max dependency distance, subordinate clause count and ratio, POS tag proportions (NOUN, VERB, ADJ, ADV, ADP, CONJ), number of unique POS tags. Extracted using spaCy `en_core_web_sm`.
+
+**Surprisal (7 features)**: GPT-2 per-token surprisal statistics: mean, max, min, std, median surprisal (in bits), surprisal range, and perplexity (2^mean_surprisal). Computed by running GPT-2 (117M) on each sentence and measuring negative log-probability of each token given its left context.
+
+### 3.2 Interpretable Classifiers
+
+Three classifiers are trained on the 41 features with 5-fold stratified CV:
+
+- **Logistic Regression**: L2-regularized (C=1.0), balanced class weights, max 1000 iterations. Features standardized.
+- **Random Forest**: 100 trees, max depth 15, balanced class weights.
+- **XGBoost**: 100 trees, max depth 6, learning rate 0.1, GPU-accelerated histogram method.
+
+### 3.3 Feature Group Ablation
+
+Using XGBoost (best feature-based model), we run two ablation experiments:
+1. **Individual groups**: Train with only one feature group at a time.
+2. **Leave-one-group-out**: Train with all features except one group. The F1 drop quantifies that group&#39;s unique contribution.
+
+### 3.4 BERT Fine-tuning
+
+We fine-tune `bert-base-uncased` with a 6-class classification head:
+- Max sequence length: 128 tokens
+- Batch size: 64
+- Learning rate: 2e-5 with linear warmup (10% of steps)
+- Weight decay: 0.01
+- Epochs: 5 per fold (best epoch selected by validation macro F1)
+- 5-fold stratified CV (same splits as feature models)
+
+### 3.5 Diagnostic Experiments
+
+1. **BERT Probing**: Fit a Ridge regression (α=1.0) from standardized interpretable features to BERT&#39;s predicted class (argmax of logits). Report R² in 5-fold CV.
+2. **Group-level probing**: Repeat probing with each feature group separately to measure which dimensions BERT most relies on.
+3. **Error overlap analysis**: Categorize each sample as (both correct, XGBoost-only correct, BERT-only correct, both wrong).
+4. **Per-level advantage**: Compute accuracy by CEFR level for both XGBoost and BERT to identify where BERT gains.
+
+### 3.6 Evaluation
+
+- **Primary metric**: Macro F1 (averaged over 6 classes)
+- **Secondary metrics**: Accuracy, adjacent accuracy (prediction within ±1 level), quadratic weighted Cohen&#39;s κ
+- **Baseline**: Majority class (always predicts B2)
+
+## 4. Results
+
+### 4.1 Feature Correlation Analysis
+
+All 41 features show statistically significant Spearman correlations with ordinal CEFR level (all p &lt; 0.001). The top features by absolute correlation:
+
+| Rank | Feature | ρ | Group |
+|------|---------|---|-------|
+| 1 | automated_readability_index | 0.676 | Readability |
+| 2 | flesch_kincaid_grade | 0.652 | Readability |
+| 3 | gunning_fog | 0.636 | Readability |
+| 4 | coleman_liau_index | 0.605 | Readability |
+| 5 | smog_index | 0.599 | Readability |
+| 6 | flesch_reading_ease | −0.588 | Readability |
+| 7 | max_word_length | 0.584 | Lexical |
+| 8 | max_syllables | 0.540 | Lexical |
+| 9 | std_word_length | 0.531 | Lexical |
+| 10 | max_sent_length | 0.523 | Syntactic |
+
+**Group-level summary:**
+
+| Group | Mean |ρ| | Max |ρ| | Best Feature | N Features |
+|-------|----------|---------|---------------|------------|
+| Readability | 0.607 | 0.676 | automated_readability_index | 7 |
+| Lexical | 0.491 | 0.584 | max_word_length | 11 |
+| Surprisal | 0.300 | 0.481 | surprisal_range | 7 |
+| Syntactic | 0.290 | 0.523 | max_sent_length | 16 |
+
+Readability formulas—which are composite indices of word and sentence length—dominate the correlation rankings. Lexical complexity features follow closely. Surprisal features show moderate correlations (ρ ≈ 0.3–0.48), and syntactic features, despite being the largest group, have the lowest average correlation.
+
+![Top 20 Feature Correlations](figures/feature_correlations_top20.png)
+
+![Top Features by Level](figures/top_features_by_level.png)
+
+### 4.2 Classifier Performance
+
+| Model | Macro F1 | Accuracy | Adjacent Acc. | QW κ |
+|-------|----------|----------|---------------|------|
+| Majority baseline | 0.083 | — | — | — |
+| Logistic Regression | 0.390 ± 0.005 | 0.449 ± 0.007 | 0.897 | 0.678 |
+| Random Forest | 0.436 ± 0.017 | 0.534 ± 0.004 | 0.961 | 0.691 |
+| XGBoost | 0.435 ± 0.018 | 0.539 ± 0.011 | 0.963 | 0.685 |
+| **BERT** | **0.524 ± 0.043** | **0.644 ± 0.011** | **0.993** | **0.814** |
+
+![Model Comparison](figures/model_comparison.png)
+
+Key observations:
+- All models vastly outperform the majority baseline (F1 = 0.083).
+- Random Forest and XGBoost perform comparably (F1 ≈ 0.435), both outperforming Logistic Regression (F1 = 0.390). The non-linear classifiers capture feature interactions that linear models miss.
+- **BERT achieves F1 = 0.524, an 8.9-point improvement over the best feature model.** This gap is larger than the 2–5 points reported in document-level CEFR studies, likely because sentence-level classification provides less context for feature-based approaches.
+- Adjacent accuracy is very high across all models (&gt;89%), indicating that errors are predominantly between neighboring CEFR levels rather than large jumps.
+- BERT&#39;s quadratic weighted κ (0.814) indicates strong ordinal agreement, well above the feature models (0.678–0.691).
+
+### 4.3 Feature Group Ablation
+
+**Individual groups (XGBoost):**
+
+| Feature Group | Macro F1 | N Features |
+|---------------|----------|------------|
+| Lexical | 0.394 ± 0.007 | 11 |
+| Readability | 0.380 ± 0.011 | 7 |
+| Syntactic | 0.350 ± 0.015 | 16 |
+| Surprisal | 0.267 ± 0.010 | 7 |
+
+**Leave-one-group-out (from full XGBoost, F1 = 0.435):**
+
+| Removed Group | Macro F1 | Drop from Full |
+|---------------|----------|----------------|
+| Surprisal | 0.412 | −0.023 |
+| Lexical | 0.422 | −0.013 |
+| Readability | 0.434 | −0.001 |
+| Syntactic | 0.435 | −0.000 |
+
+![Ablation Results](figures/ablation_individual_groups.png)
+
+**Interpretation**: The ablation reveals a crucial asymmetry:
+- **Readability features** are strong individually (F1=0.380) but contribute almost nothing unique when other features are present (drop = 0.001). This is because readability formulas are *composites* of word and sentence length—information already captured by lexical and syntactic features.
+- **Lexical features** are both strong individually (F1=0.394) and contribute unique information (drop = 0.013), particularly through word-level statistics not captured by readability formulas.
+- **Surprisal features** are weak individually (F1=0.267) but provide the **largest unique contribution** (drop = 0.023). This supports the hypothesis that GPT-2 surprisal captures information about difficulty that is *orthogonal* to traditional lexical and syntactic features—likely related to word predictability in context, collocational patterns, and pragmatic difficulty.
+- **Syntactic features** contribute minimally in both analyses, suggesting that syntactic complexity at the sentence level is largely captured by sentence length and readability formulas.
+
+### 4.4 Feature Importance
+
+XGBoost feature importance (gain) confirms the dominance of readability and lexical features:
+
+| Rank | Feature | Importance | Group |
+|------|---------|-----------|-------|
+| 1 | automated_readability_index | 0.180 | Readability |
+| 2 | flesch_kincaid_grade | 0.062 | Readability |
+| 3 | gunning_fog | 0.051 | Readability |
+| 4 | max_word_length | 0.049 | Lexical |
+| 5 | mean_sent_length | 0.034 | Syntactic |
+| 6 | surprisal_range | 0.029 | Surprisal |
+| 7 | min_surprisal | 0.028 | Surprisal |
+| 8 | n_tokens | 0.026 | Lexical |
+| 9 | n_types | 0.026 | Lexical |
+| 10 | coleman_liau_index | 0.025 | Readability |
+
+ARI alone accounts for 18% of total feature importance, consistent with it having the highest single-feature correlation (ρ = 0.676).
+
+![XGBoost Feature Importance](figures/xgboost_feature_importance.png)
+
+### 4.5 Diagnostic: BERT Probing
+
+**Overall probing R²**: A ridge regression from 41 interpretable features to BERT&#39;s predicted class achieves **R² = 0.601 ± 0.024** in cross-validation. This means 60% of the variance in BERT&#39;s predictions can be linearly explained by our features.
+
+**Group-level probing R²:**
+
+| Feature Group | R² (predicting BERT) |
+|---------------|---------------------|
+| Readability | 0.546 |
+| Lexical | 0.544 |
+| Syntactic | 0.429 |
+| Surprisal | 0.286 |
+
+**Top features explaining BERT&#39;s predictions (Ridge coefficient magnitude):**
+
+| Feature | |Ridge Coefficient| |
+|---------|---------------------|
+| n_types | 0.490 |
+| guiraud_index | 0.465 |
+| max_sent_length | 0.304 |
+| gunning_fog | 0.259 |
+| flesch_reading_ease | 0.250 |
+| mean_syllables | 0.210 |
+| prop_noun | 0.133 |
+| std_word_length | 0.133 |
+| subclause_ratio | 0.130 |
+| mean_word_length | 0.122 |
+
+**Interpretation**: BERT&#39;s behavior is substantially (but not fully) predictable from interpretable features. The remaining 40% of variance likely reflects:
+- Semantic content and word choice patterns not captured by surface features
+- Contextual word difficulty (same word in different contexts)
+- Discourse coherence and pragmatic complexity
+- Distributional patterns learned during pretraining
+
+Interestingly, lexical diversity features (n_types, guiraud_index) are the strongest predictors of BERT&#39;s behavior, even though readability formulas have higher raw correlations with CEFR labels. This suggests BERT attends more to vocabulary richness than to raw formula-based indices.
+
+### 4.6 Error Analysis
+
+**Prediction agreement between XGBoost and BERT:**
+
+| Category | Count | Percentage |
+|----------|-------|------------|
+| Both correct | 4,046 | 40.4% |
+| XGBoost only correct | 1,343 | 13.4% |
+| BERT only correct | 2,397 | 24.0% |
+| Both wrong | 2,218 | 22.2% |
+
+BERT is correct on 24.0% of samples where XGBoost fails, while XGBoost is correct on only 13.4% where BERT fails. This asymmetry confirms BERT has a genuine advantage, not just different errors.
+
+**Mean Absolute Error**: XGBoost MAE = 0.499 levels, BERT MAE = 0.363 levels. BERT&#39;s errors are smaller on average, further supporting its stronger ordinal awareness.
+
+**Per-class F1 comparison:**
+
+| Level | XGBoost F1 | BERT F1 | BERT Advantage |
+|-------|-----------|---------|----------------|
+| A1 | 0.273 | 0.167 | −0.107 |
+| A2 | 0.546 | 0.637 | +0.091 |
+| B1 | 0.583 | 0.660 | +0.077 |
+| B2 | 0.554 | 0.650 | +0.096 |
+| C1 | 0.442 | 0.647 | +0.204 |
+| C2 | 0.210 | 0.385 | +0.176 |
+
+![Per-Class F1 Comparison](figures/per_class_f1_comparison.png)
+
+**BERT accuracy advantage by level:**
+
+| Level | XGBoost Acc | BERT Acc | BERT Δ | N |
+|-------|------------|---------|--------|---|
+| A1 | 0.177 | 0.113 | −0.065 | 124 |
+| A2 | 0.485 | 0.707 | +0.221 | 1,271 |
+| B1 | 0.607 | 0.670 | +0.063 | 3,305 |
+| B2 | 0.607 | 0.650 | +0.043 | 3,330 |
+| C1 | 0.397 | 0.619 | +0.221 | 1,744 |
+| C2 | 0.130 | 0.322 | +0.191 | 230 |
+
+![Confusion Matrices](figures/confusion_matrices_comparison.png)
+
+**Key findings from error analysis:**
+
+1. **A1 is the only level where XGBoost outperforms BERT.** With only 124 samples, BERT likely overfits or fails to learn a reliable A1 representation. XGBoost&#39;s use of handcrafted features (very short sentences, very simple vocabulary) may provide a more robust signal for this tiny class.
+
+2. **BERT&#39;s largest advantages are at A2 (+22.1% accuracy) and C1 (+22.1% accuracy)**—the boundary levels between beginner/intermediate and advanced/proficient. These levels require nuanced distinctions that surface features capture poorly.
+
+3. **C2 is difficult for both models** (XGBoost: 13% accuracy, BERT: 32%), reflecting the small sample size and the inherent difficulty of distinguishing C2 from C1 at the sentence level.
+
+4. **Both models show the adjacent-confusion pattern**: the confusion matrices reveal that errors concentrate on neighboring levels (A2↔B1, B1↔B2, B2↔C1), confirming the ordinal nature of CEFR difficulty.
+
+## 5. Discussion
+
+### 5.1 Hypothesis Evaluation
+
+**H1 (Readability is strongest group)**: **Supported with nuance.** Readability features have the highest average correlation (ρ = 0.607) and perform well individually (F1 = 0.380), but *lexical features* achieve slightly higher F1 when used as the sole group (0.394). This is because XGBoost can exploit the finer granularity of individual lexical features more effectively than the composite readability indices.
+
+**H2 (Combining groups improves)**: **Supported.** The full model (F1 = 0.435) improves over the best single group (lexical, F1 = 0.394), a 4.1-point gain. The ablation confirms that surprisal and lexical features contribute unique information.
+
+**H3 (Feature model within 5 F1 of BERT)**: **Not supported.** The gap is 8.9 F1 points (0.435 vs. 0.524). This is larger than the 2–5 point gap reported in document-level CEFR studies, likely because sentence-level classification provides less context for feature-based approaches. At the document level, features like overall vocabulary diversity and clause patterns accumulate more signal; at the sentence level, each sample provides a single snapshot where BERT&#39;s contextual understanding has a larger advantage.
+
+**H4 (&gt;70% variance explained)**: **Not supported.** The probing R² is 0.601, meaning 60% of BERT&#39;s predictions are explainable. The remaining 40% suggests BERT captures genuine additional information—likely semantic content, pragmatic complexity, and contextual word difficulty.
+
+**H5 (BERT advantage on adjacent levels)**: **Partially supported.** BERT&#39;s advantage is indeed present for adjacent-level distinctions, but its *largest* gains are at A2 and C1—not strictly adjacent pairs. BERT excels at the &#34;boundary&#34; levels where the linguistic cues distinguishing beginner from intermediate (A2 vs. B1) and advanced from proficient (C1 vs. C2) are more subtle and contextual.
+
+### 5.2 What Makes Sentences Difficult?
+
+Our results support a multi-dimensional view of sentence difficulty:
+
+1. **Vocabulary complexity is the primary driver.** Word length, syllable count, and readability formulas (which are largely word-length proxies) dominate feature importance. This aligns with vocabulary acquisition research showing that lexical knowledge is the strongest predictor of reading comprehension.
+
+2. **Contextual predictability adds unique signal.** GPT-2 surprisal—which measures how unexpected each word is given its context—provides the largest *unique* contribution to the feature model despite modest individual performance. This suggests that difficulty involves not just *what* words appear but *how predictable* their appearance is.
+
+3. **Syntactic complexity is largely redundant.** Once lexical and readability features are included, syntactic features add negligible information. This may reflect that syntactic complexity at the sentence level correlates highly with sentence length (already captured) or that spaCy&#39;s dependency features lack the resolution to capture the syntactic distinctions relevant to CEFR levels (e.g., specific subordinate clause types).
+
+4. **BERT captures something beyond features.** The 40% unexplained variance suggests BERT accesses semantic coherence, idiomatic expressions, discourse-level pragmatic cues, or distributional word patterns that our features do not measure.
+
+### 5.3 Implications for Text Difficulty Assessment
+
+For practitioners building text difficulty tools:
+- **Automated Readability Index** alone captures most of the feature-based signal (ρ = 0.676 with CEFR, 18% of XGBoost importance). If interpretability is paramount, ARI provides a strong single-feature baseline.
+- **Adding GPT-2 surprisal** is the most cost-effective feature enrichment (largest unique F1 gain of 0.023).
+- **BERT fine-tuning** yields the strongest predictions but at the cost of interpretability. The probing analysis shows that 60% of its behavior can be post-hoc explained via interpretable features.
+
+### 5.4 Limitations
+
+1. **Sentence-level analysis**: CEFR is naturally a text-level property. Sentence-level classification loses discourse coherence and topic effects.
+2. **English only**: Results may not generalize to other languages where lexical and syntactic difficulty interact differently.
+3. **Small extreme classes**: A1 (n=124) and C2 (n=230) are too small for reliable evaluation, as evidenced by high variance in per-class metrics.
+4. **Single BERT variant**: We only tested `bert-base-uncased`. Larger models or multilingual models may show different probing profiles.
+5. **Surprisal from GPT-2 (117M)**: Larger language models may yield better surprisal estimates, potentially closing more of the gap.
+
+## 6. Conclusion
+
+We systematically investigated what linguistic features drive CEFR difficulty at the sentence level. Our main findings are:
+
+1. **Lexical complexity and readability features are the strongest predictors**, with Automated Readability Index alone achieving ρ = 0.676 with CEFR level.
+2. **GPT-2 surprisal provides the largest unique contribution** among feature groups, suggesting that contextual word predictability captures a dimension of difficulty orthogonal to traditional features.
+3. **BERT outperforms feature models by 8.9 F1 points**, with its largest advantages on boundary CEFR levels (A2, C1, C2).
+4. **60% of BERT&#39;s predictions can be linearly explained** by 41 interpretable features, leaving a substantial 40% that likely reflects semantic and pragmatic complexity.
+5. **Syntactic features are largely redundant** once lexical complexity is accounted for.
+
+These results suggest that text difficulty is primarily a lexical-statistical property but that full classification performance requires the kind of contextual, semantic understanding that pretrained language models provide. Future work should investigate whether intermediate approaches—such as fine-tuning smaller LMs with interpretable bottleneck layers—can bridge the accuracy-interpretability gap.
+
+## 7. Experimental Details
+
+- **Hardware**: NVIDIA RTX A6000 (48 GB VRAM)
+- **Software**: Python 3.12, PyTorch 2.5.1 (CUDA 12.1), XGBoost 3.1.3, Transformers 4.x, spaCy 3.x
+- **Total runtime**: 17.7 minutes (including BERT 5-fold training)
+- **Random seed**: 42
+- **CV**: 5-fold stratified
+- **Dataset**: CEFR-SP English (Arase et al., 2022), 10,004 sentences
+
+## References
+
+- Arase, Y., Uchida, S., &amp; Kajiwara, T. (2022). CEFR-Based Sentence-Profile Dataset for English Learners. *LREC 2022*.
+- Xia, M., Kochmar, E., &amp; Briscoe, T. (2016). Text readability assessment for second language learners. *BEA Workshop at NAACL*.
+- Vajjala, S. &amp; Lucic, I. (2018). OneStopEnglish corpus: A new corpus for automatic readability assessment and text simplification. *BEA Workshop*.
+- Pilán, I., Volodina, E., &amp; Zesch, T. (2016). Predicting proficiency levels in learner writings by transferring a linguistic complexity model from expert-written coursebooks. *COLING 2016*.
+- Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., &amp; Sutskever, I. (2019). Language models are unsupervised multitask learners. *OpenAI Technical Report*.
+- Devlin, J., Chang, M., Lee, K., &amp; Toutanova, K. (2019). BERT: Pre-training of deep bidirectional transformers for language understanding. *NAACL 2019*.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                            RESEARCH PLAN
+════════════════════════════════════════════════════════════════════════════════
+
+# Research Plan: Modeling Text Difficulty Using CEFR Levels
+
+## Motivation &amp; Novelty Assessment
+
+### Why This Research Matters
+Text difficulty assessment is central to language education, yet much recent NLP work treats CEFR classification as a pure prediction task—feeding text into BERT and accepting the label. This obscures *why* a text is difficult. Educators, curriculum designers, and learners benefit far more from knowing which linguistic factors drive difficulty than from a black-box label. Understanding the contribution of lexical frequency, syntactic complexity, and language model surprisal to CEFR levels can inform pedagogical material design and automated readability tools.
+
+### Gap in Existing Work
+The literature review reveals three key gaps:
+1. **Modern neural surprisal is under-explored for CEFR**: Most feature-based work uses classical n-gram LMs. The relationship between GPT-2/BERT-based surprisal and CEFR levels has not been systematically studied at the sentence level.
+2. **Feature importance in BERT is opaque**: While BERT achieves 84.5% macro-F1 on CEFR-SP (Arase et al., 2022), we don&#39;t know what linguistic properties it relies on. Probing/diagnostic experiments linking BERT predictions to interpretable features are missing.
+3. **Direct comparison with diagnostic analysis**: Studies compare features vs. neural on accuracy, but rarely analyze *where and why* they disagree, or whether BERT&#39;s advantage comes from capturing specific linguistic dimensions beyond standard features.
+
+### Our Novel Contribution
+We conduct a systematic, multi-method analysis on the CEFR-SP English sentence dataset:
+1. Extract comprehensive linguistic features (lexical, syntactic, surprisal) and train interpretable classifiers
+2. Fine-tune a BERT-based classifier as the neural baseline
+3. Perform diagnostic experiments: feature ablation, BERT probing via feature correlation, error analysis of model disagreements
+4. Quantify how much of BERT&#39;s predictions can be explained by interpretable features (R² of feature regression on BERT logits)
+
+### Experiment Justification
+- **Experiment 1 (Feature extraction &amp; EDA)**: Establishes which linguistic features correlate with CEFR levels and validates that our features capture meaningful difficulty dimensions.
+- **Experiment 2 (Interpretable classifiers)**: Tests whether traditional features alone can approach neural performance, using logistic regression, random forest, and gradient boosted trees.
+- **Experiment 3 (BERT fine-tuning)**: Provides the neural baseline to compare against.
+- **Experiment 4 (Diagnostic experiments)**: The core novelty—probing BERT with feature regression, ablation studies, and error analysis to understand *what* each approach captures.
+
+## Research Question
+Can interpretable linguistic features (lexical frequency, syntactic complexity, language model surprisal) explain most of the variance in CEFR sentence difficulty, and where does a fine-tuned BERT classifier capture information beyond these features?
+
+## Hypothesis Decomposition
+- **H1**: Lexical frequency features are the single strongest predictor group for sentence-level CEFR classification.
+- **H2**: Adding syntactic complexity and LM surprisal features significantly improves over lexical features alone.
+- **H3**: A well-engineered feature-based model achieves within 5 F1 points of fine-tuned BERT.
+- **H4**: Most of BERT&#39;s predictive behavior (&gt;70% variance) can be explained by a linear combination of interpretable linguistic features.
+- **H5**: BERT&#39;s advantage concentrates on distinguishing adjacent levels (e.g., B1 vs. B2) where feature-based models struggle most.
+
+## Proposed Methodology
+
+### Dataset
+- **CEFR-SP** (Arase et al., 2022): 10,004 English sentences with CEFR labels (A1-C2)
+- Distribution: A1=124, A2=1271, B1=3305, B2=3330, C1=1744, C2=230
+- Note: Class imbalance—A1 and C2 are underrepresented. Will use stratified splits and macro-F1.
+
+### Feature Groups
+
+1. **Lexical features**: Word frequency (SubtlexUS), type-token ratio, word length stats, word-level CEFR stats (via cefrpy), difficult word ratio
+2. **Syntactic features**: Dependency tree depth, dependency distance, POS distribution, subordinate clause ratio, sentence length
+3. **LM Surprisal features**: GPT-2 mean/max surprisal per sentence, GPT-2 perplexity
+4. **Traditional readability**: Flesch-Kincaid, ARI, Coleman-Liau (as weak baselines)
+
+### Approach
+1. **Feature extraction**: Use LFTK, TextDescriptives, surprisal library, cefrpy, textstat
+2. **Interpretable models**: Logistic Regression (L2), Random Forest, XGBoost with feature groups ablation
+3. **BERT baseline**: Fine-tune `bert-base-uncased` on CEFR-SP with classification head
+4. **Diagnostic experiments**:
+   a. Feature ablation: Train models with each feature group removed
+   b. BERT probing: Regress BERT&#39;s predicted class probabilities on interpretable features
+   c. Error analysis: Compare where feature model and BERT disagree
+   d. Confusion matrix analysis: Which level pairs are hardest for each approach
+
+### Baselines
+- Majority class baseline
+- Sentence length only baseline
+- Traditional readability formulas only
+- Each individual feature group
+
+### Evaluation Metrics
+- **Macro F1** (primary): Handles class imbalance, standard in CEFR literature
+- **Accuracy**: For comparability with prior work
+- **Per-class F1**: To identify level-specific strengths/weaknesses
+- **Adjacent accuracy**: Fraction of predictions within 1 CEFR level (captures near-misses)
+
+### Statistical Analysis Plan
+- 5-fold stratified cross-validation for all models
+- Report mean ± std for all metrics
+- McNemar&#39;s test for pairwise model comparison
+- Bonferroni correction for multiple comparisons
+- Feature importance via permutation importance (model-agnostic)
+- Spearman correlation between feature values and ordinal CEFR level
+
+## Expected Outcomes
+- Lexical features will be the strongest single group (~55-60% macro-F1 alone)
+- Surprisal features will add 3-5 points over lexical alone
+- Full feature model: ~65-72% macro-F1
+- BERT: ~75-80% macro-F1
+- Feature regression on BERT logits: R² &gt; 0.70
+- Largest errors will be on adjacent levels (B1↔B2) for both approaches
+
+## Timeline and Milestones
+1. Environment setup &amp; data loading (10 min)
+2. Feature extraction pipeline (30 min)
+3. EDA &amp; feature analysis (20 min)
+4. Interpretable model training &amp; ablation (30 min)
+5. BERT fine-tuning (30 min)
+6. Diagnostic experiments (30 min)
+7. Visualization &amp; analysis (20 min)
+8. Report writing (30 min)
+
+## Potential Challenges
+- **Class imbalance**: A1 (124) and C2 (230) are very small. Mitigation: macro-F1, stratified CV, possibly class weights.
+- **Feature extraction speed**: LFTK/spaCy on 10K sentences may be slow. Mitigation: batch processing.
+- **BERT training time**: Mitigation: leverage GPU (RTX A6000 available), use small learning rate and early stopping.
+- **Surprisal computation**: GPT-2 inference on 10K sentences. Mitigation: batch with GPU.
+
+## Success Criteria
+1. All feature groups extracted and validated
+2. At least 3 interpretable classifiers trained and evaluated
+3. BERT fine-tuned and evaluated on same splits
+4. Feature ablation completed showing relative importance
+5. BERT probing analysis completed
+6. Clear answer to whether features explain most of BERT&#39;s predictions
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          LITERATURE REVIEW
+════════════════════════════════════════════════════════════════════════════════
+
+# Literature Review: Modeling Text Difficulty Using CEFR Levels
+
+## 1. Introduction / Background
+
+The Common European Framework of Reference for Languages (CEFR) is the dominant international standard for describing language proficiency, organizing competence into six levels from A1 (beginner) through C2 (mastery). Originally developed by the Council of Europe to harmonize language education and assessment across member states, the CEFR has become the de facto standard for curriculum design, textbook grading, and language testing worldwide. Its six-level scale provides a shared vocabulary for educators, test developers, and learners, and it has been adopted in contexts well beyond Europe, including language programs in East Asia, the Middle East, and the Americas.
+
+From a computational linguistics perspective, the CEFR presents a compelling operationalization of text difficulty. Unlike raw readability scores or grade-level equivalencies developed primarily for English-language education (e.g., Flesch-Kincaid, Dale-Chall), CEFR levels are designed to be language-independent and proficiency-oriented. They describe what a learner at a given level can understand, not merely surface properties of the text itself. This distinction is consequential: a text rated at B2 is one that a B2-level learner should be able to comprehend with reasonable effort, which implies that CEFR difficulty is fundamentally tied to the cognitive and linguistic demands that text places on a reader at a given proficiency stage. The framework thus provides a human-centered, pedagogically grounded target variable for computational models of text difficulty.
+
+The central methodological question in this literature is whether text difficulty---as captured by CEFR levels---is best modeled through interpretable linguistic features or through black-box machine learning. The feature-based tradition draws on decades of readability research and second language acquisition (SLA) theory, constructing models from lexical frequency profiles, syntactic complexity measures, discourse coherence indicators, and psycholinguistic variables. These features are motivated by theories of how readers process text: frequent words are recognized faster, shorter dependency arcs reduce working memory load, and coherent discourse structure supports comprehension. The competing paradigm treats CEFR classification as a supervised learning problem amenable to deep neural networks, particularly pretrained language models such as BERT and its multilingual variants, which learn text representations end-to-end without explicit feature engineering.
+
+This review surveys the empirical literature on both approaches, with particular attention to comparative studies that pit feature-based models against neural alternatives on the same data. The evidence, as will be shown, suggests that the performance gap between well-engineered linguistic features and state-of-the-art neural models is surprisingly modest, while traditional readability formulas and zero-shot large language model (LLM) prompting approaches fall substantially short of both.
+
+## 2. Feature-Based Approaches to CEFR Classification
+
+### 2.1 Lexical Features
+
+Lexical features are consistently the most powerful single group of predictors for CEFR-level classification, a finding that recurs across languages, datasets, and modeling frameworks. The intuition is straightforward: lower-proficiency texts use more frequent, more familiar vocabulary, while higher-proficiency texts increasingly draw on rarer, more specialized, and more abstract words. This pattern is robust enough that lexical features alone often approach the performance of full-feature models.
+
+Word frequency is the foundational lexical feature. Vajjala and Meurers (2012) demonstrated that lexical frequency, drawn from reference corpora, was the single strongest predictor of CEFR-graded text difficulty across a rich feature set of over 152 SLA-motivated variables. Pilán et al. (2016) confirmed this in Swedish, finding that lexical features alone achieved F=0.80 at the document level, compared to F=0.81 for a model using all available feature groups---a gap of just one percentage point. Type-token ratio (TTR) and its corrected variants capture lexical diversity, which tends to increase with proficiency level as learners command a broader range of vocabulary. Arnold et al. (2018) found that word token and word type counts were among the most important features in their gradient boosted tree models of CEFR difficulty.
+
+CEFR-specific vocabulary resources have proven particularly valuable. The English Vocabulary Profile (EVP) assigns CEFR levels to individual words and phrases, enabling features such as the proportion of vocabulary at or above the target CEFR level. Xia et al. (2016) showed that EVP-derived features were especially important for modeling L2 text difficulty, since they capture not just frequency but pedagogical sequencing---the order in which vocabulary is typically taught to language learners. Similarly, the Kelly list provides frequency-ranked vocabulary for Swedish, and Pilán et al. (2016) used it to construct CEFR-aligned lexical features for their Swedish readability system.
+
+### 2.2 Syntactic Complexity
+
+Syntactic complexity captures the structural difficulty of sentences and is grounded in psycholinguistic theories of sentence processing. More complex syntax---longer dependencies, deeper embedding, more subordination---places greater demands on working memory and is accordingly associated with higher CEFR levels.
+
+Parse tree depth measures how deeply nested a sentence&#39;s constituent structure is, with deeper trees reflecting more embedded clauses and more complex hierarchical organization. Dependency length, the linear distance between a head word and its dependent, captures a different dimension of syntactic difficulty: longer dependencies require readers to maintain information in working memory across more intervening material. Khallaf and Sharoff (2021) found that syntactic features ranked among the top 10 most important features for Arabic CEFR classification, with dependency-based measures contributing predictive power beyond what lexical features alone provided.
+
+T-unit analysis (the minimal terminable unit) and measures of subordination (subordinate clause ratio, clauses per T-unit) have been used extensively in SLA research to characterize writing development across proficiency levels. Vajjala and Meurers (2012) drew on this tradition, incorporating a comprehensive set of syntactic complexity measures motivated by SLA theory. Pitler and Nenkova (2008), in their study of Wall Street Journal article readability, found that verb phrase (VP) production rules correlated at r=0.42 with human readability judgments, confirming that syntactic structure encodes meaningful difficulty information.
+
+At the sentence level, syntactic features become more important relative to lexical features. Pilán et al. (2016) observed that the gap between lexical-only models and full-feature models widened from 1 percentage point at document level to nearly 7 percentage points at sentence level (56.8% vs. 63.4%), suggesting that syntactic and other features carry more marginal information when there is less text available to estimate lexical profiles.
+
+### 2.3 Language Model Features
+
+Statistical language model features operationalize the predictability of text, drawing on the psycholinguistic insight that processing difficulty is related to surprisal---the information-theoretic surprise associated with each word given its context. Text composed of high-probability sequences is easier to process; text with unexpected words and constructions is harder.
+
+Xia et al. (2016) found that language model features were the single best-performing feature group for CEFR classification of Cambridge exam texts, achieving an accuracy of 0.714 as a standalone group. When combined with other features in a self-training semi-supervised framework, accuracy rose to 0.797. This result is notable because it demonstrates that the statistical structure of text---its n-gram predictability and perplexity---carries substantial information about CEFR difficulty, above and beyond what lexical frequency and syntactic complexity encode.
+
+François and Fairon (2012) used statistical language models as a core component of their French-as-a-foreign-language readability system, combining n-gram probabilities with logistic regression to predict difficulty levels. Their work demonstrated the applicability of language model features beyond English, supporting the cross-linguistic generality of the approach.
+
+Pitler and Nenkova (2008) reported that vocabulary-based language model features correlated at r=0.45 with human readability judgments, making them the second strongest individual feature group in their study, behind discourse relation features (r=0.48) but ahead of syntactic features (r=0.42). Their combined model achieved R²=0.776, demonstrating that language model features provide complementary information to syntactic and discourse measures.
+
+Despite these promising results, language model surprisal remains under-explored specifically for CEFR classification. Most work using LM features has employed relatively simple n-gram models. The relationship between modern neural language model perplexity (from GPT-family or BERT-family models) and CEFR difficulty has received comparatively little direct investigation, representing a clear gap in the literature.
+
+### 2.4 Discourse Features
+
+Discourse-level features capture properties of text organization that extend beyond individual words and sentences, including coherence, entity continuity, and the use of discourse connectors. Pitler and Nenkova (2008) provided the most direct evidence for discourse features in readability modeling, finding that discourse relation features---operationalized through entity grids and discourse connectors---achieved the highest individual correlation with readability judgments (r=0.48) of any feature group tested. Their combined model with discourse, syntax, vocabulary, and language model features achieved R²=0.776, and discourse features contributed unique predictive variance.
+
+Entity grids (Barzilay and Lapata, 2008), which track the grammatical roles of entities across sentences, provide a formal representation of text coherence. The distribution of entity transitions (e.g., subject-to-subject continuity vs. abrupt topic shifts) differs systematically between more and less readable texts, and these patterns align with CEFR levels to the extent that higher-level texts employ more complex discourse organization.
+
+Discourse connectors and cohesive devices are pedagogically significant in CEFR-aligned instruction, where learners are expected to use progressively more sophisticated linking expressions. However, the computational modeling of these features for CEFR classification has been relatively limited compared to lexical and syntactic features, likely because they require more sophisticated NLP pipelines and discourse-parsed corpora that are not available for many languages.
+
+### 2.5 Psycholinguistic Features
+
+Psycholinguistic features capture properties of words that relate to how they are acquired and processed by learners, including concreteness, imageability, and age of acquisition (AoA). Concrete, imageable words with low ages of acquisition are learned earlier and processed more quickly than abstract, low-imageability words acquired later in development. These properties align with CEFR levels: A1-A2 texts tend to use concrete, everyday vocabulary, while C1-C2 texts increasingly employ abstract, specialized terms.
+
+Vajjala and Meurers (2012) incorporated psycholinguistic features from databases such as the MRC Psycholinguistic Database, finding that they contributed to CEFR prediction alongside frequency and syntactic measures. These features are particularly valuable because they capture dimensions of word difficulty that raw frequency does not: a word may be infrequent in a general corpus but highly concrete and easily learned (e.g., &#34;giraffe&#34;), or frequent but abstract and difficult (e.g., &#34;however&#34;).
+
+### 2.6 Traditional Readability Formulas and Why They Fail for CEFR
+
+Traditional readability formulas---Flesch Reading Ease, Flesch-Kincaid Grade Level, Dale-Chall, SMOG, and similar metrics---were developed in mid-20th-century American educational contexts to estimate the grade-level appropriateness of English texts. They rely on surface proxies such as average sentence length and average syllable count per word, which serve as rough indicators of syntactic and lexical complexity.
+
+These formulas perform poorly for CEFR classification, a finding that is consistent across studies. Pilán et al. (2016) reported that LIX (a Swedish readability formula analogous to Flesch-Kincaid) was essentially useless for CEFR-level prediction. Vajjala and Meurers (2012) described traditional formulas as &#34;crude proxies&#34; for the linguistic dimensions they attempt to capture, arguing that CEFR levels require fine-grained feature modeling that surface formulas cannot provide. Pitler and Nenkova (2008) found that surface metrics---sentence length, word length---were among the weakest predictors of readability, substantially underperforming discourse, syntactic, and language model features.
+
+The fundamental problem is that traditional formulas were designed for native-speaker reading in a single language and educational context. CEFR levels encode a multidimensional construct---proficiency-appropriate difficulty---that depends on vocabulary control, grammatical complexity, discourse structure, and topic familiarity in ways that sentence length and syllable count cannot capture. A text with short sentences and simple words may still be C1 if it requires sophisticated pragmatic inference; a text with long sentences may be B1 if the syntax is formulaic and the vocabulary is controlled. These distinctions are invisible to traditional formulas.
+
+## 3. Neural and Embedding-Based Approaches
+
+### 3.1 BERT Fine-Tuning for CEFR Classification
+
+The advent of pretrained transformer language models, particularly BERT and its multilingual variants, has provided a powerful alternative to feature engineering for CEFR classification. These models learn contextual word representations from large corpora through self-supervised pretraining, and can be fine-tuned on downstream classification tasks with relatively modest amounts of labeled data.
+
+Khallaf and Sharoff (2021) fine-tuned Arabic-BERT on a corpus of 22,740 sentences labeled with CEFR levels, achieving a macro-F1 of 0.80. This outperformed their SVM model with engineered features and XLM-R embeddings, which achieved F1=0.75, representing a 5-point advantage for the fine-tuned transformer. However, they also found that the feature-based model transferred better across domains, suggesting that neural models may overfit to surface distributional properties of their training data.
+
+Imperial et al. (2025), in their large-scale UniversalCEFR benchmark, fine-tuned XLM-R on a 505,807-text multilingual corpus spanning 13 languages, achieving 62.8% macro-F1. This represented the best overall performance in their evaluation, but the margin over their best feature-based model (RF-ALLFEATS at 58.3%) was only 4.5 percentage points. More recent multilingual transformers such as ModernBERT and EuroBERT were not evaluated in UniversalCEFR but represent potential improvements given their expanded pretraining data and architectural refinements.
+
+Lagutina et al. (2023) compared BERT fine-tuning to feature-based SVM classification on a Russian CEFR dataset, finding BERT at 69% accuracy versus SVC with stylometric features at 67%---a gap of just 2 percentage points. This vanishingly small margin raises questions about whether the additional computational cost and opacity of neural models are justified for CEFR classification when well-designed features perform nearly as well.
+
+### 3.2 Graph Convolutional Networks for Joint Readability
+
+Fujinuma and Hagiwara (2021) proposed a graph convolutional network (GCN) approach that jointly models word-level and document-level readability. Their key insight was that words and documents exist in a shared difficulty space: difficult words tend to appear in difficult documents, and this co-occurrence structure can be exploited by a graph-based model that propagates information between word and document nodes.
+
+Their GCN achieved 79.6% document-level accuracy. Critically, an ablation study showed that BERT embeddings were essential to performance, with their removal causing an 11.2 percentage point drop. This finding suggests that the GCN&#39;s strength derives primarily from the rich contextual representations provided by pretrained language models rather than from the graph structure per se, lending further support to the importance of contextual language modeling for CEFR classification.
+
+### 3.3 Prototype-Based Methods
+
+Arase et al. (2022) introduced CEFR-SP, a prototype-based approach to sentence-level CEFR classification that learns representative examples (prototypes) for each CEFR level and classifies new sentences by similarity to these prototypes. Using a BERT-based architecture on a corpus of 17,676 sentences, CEFR-SP achieved a macro-F1 of 84.5%, dramatically outperforming a bag-of-words baseline (52.3%).
+
+A particularly informative finding from Arase et al. was that sentence length, while a useful discriminator at lower proficiency levels (A1-A2 vs. B1), was insufficient to distinguish among higher levels (B1-B2-C1-C2). This result underscores the multidimensionality of CEFR difficulty: at higher levels, difficulty is driven by lexical sophistication, syntactic complexity, and discourse demands rather than sheer length, and models that rely on surface proxies will plateau.
+
+### 3.4 LLM Prompting Approaches and Their Limitations
+
+The emergence of large language models (LLMs) with strong zero-shot capabilities has prompted interest in using these models directly for CEFR classification through prompting. The appeal is obvious: if an LLM can assign CEFR levels without task-specific training data, it would drastically simplify the classification pipeline.
+
+However, empirical results have been consistently disappointing. Imperial et al. (2025) evaluated Gemma3 prompting on their UniversalCEFR benchmark and obtained only 43.2% macro-F1---nearly 20 percentage points below the fine-tuned XLM-R (62.8%) and 15 percentage points below the best feature-based model (58.3%). This substantial underperformance suggests that CEFR-level classification requires more precise calibration than LLMs acquire through general pretraining. LLMs may have a broad understanding of text difficulty but lack the fine-grained ability to discriminate between adjacent CEFR levels (e.g., B1 vs. B2), where the differences are subtle and pedagogically specific.
+
+## 4. Comparative Studies: Features vs. Neural
+
+The most informative studies for our research hypothesis are those that directly compare feature-based and neural approaches on the same datasets and evaluation protocols. Taken together, they paint a consistent picture: neural models hold a modest advantage, but the gap is smaller than might be expected given the representational power of pretrained transformers.
+
+### 4.1 UniversalCEFR (Imperial et al., 2025)
+
+The most comprehensive comparison to date, UniversalCEFR evaluated models on 505,807 texts across 13 languages. The headline results were: XLM-R fine-tuning achieved 62.8% macro-F1, RF with all features achieved 58.3%, RF with top features achieved 57.9%, and Gemma3 prompting achieved 43.2%. The 4.5-point gap between the best neural and best feature-based models is statistically meaningful but practically modest, especially given that the feature-based model is interpretable and computationally lightweight. Notably, for Czech, the random forest feature-based model actually outperformed XLM-R, demonstrating that the neural advantage is not universal and may depend on language-specific factors such as training data representation in the pretrained model.
+
+### 4.2 Arabic CEFR Classification (Khallaf &amp; Sharoff, 2021)
+
+In Arabic, fine-tuned Arabic-BERT achieved F1=0.80 compared to F1=0.75 for SVM with engineered features and XLM-R embeddings---a 5-point gap. However, the feature-based model demonstrated better cross-domain transfer, suggesting that linguistic features capture more generalizable properties of text difficulty while neural models may partially rely on domain-specific distributional cues.
+
+### 4.3 EFCAMDAT Study (Arnold et al., 2018)
+
+Arnold et al. (2018) used the large EFCAMDAT corpus of 41,000 texts to compare gradient boosted trees (GBT) with engineered features against LSTMs. The GBT model achieved 0.916 AUC for the A1-to-A2 classification task, and the LSTM did not outperform the feature-based approach. Word token and type counts were the most important features. This result is particularly significant because LSTMs, while less powerful than modern transformers, represent the class of neural sequence models, and their failure to improve on engineered features with a substantial training corpus supports the hypothesis that well-chosen features capture the essential dimensions of CEFR difficulty.
+
+### 4.4 Russian CEFR Classification (Lagutina et al., 2023)
+
+Lagutina et al. (2023) reported the smallest gap in the literature: SVC with stylometric features achieved 67% accuracy compared to 69% for BERT---a mere 2-point difference. This near-parity result, on a different language and with a different feature set, strengthens the case that the feature-neural gap for CEFR classification is genuinely small when features are well-designed.
+
+### 4.5 Readability with Discourse Features (Pitler &amp; Nenkova, 2008)
+
+While not specifically targeting CEFR, Pitler and Nenkova (2008) provided foundational evidence for the importance of linguistically motivated features in readability modeling. Their combined model of discourse relations, syntax, vocabulary, and language model features achieved R²=0.776. Discourse features alone correlated at r=0.48 with readability, vocabulary LM features at r=0.45, and VP production rules at r=0.42. Surface metrics performed poorly. This study established that readability is best modeled through multiple linguistic dimensions, not surface proxies or single feature groups.
+
+## 5. Cross-Lingual and Multilingual Findings
+
+A critical question for CEFR classification is whether models and features generalize across languages. The CEFR framework is explicitly language-independent, but the linguistic features that predict CEFR levels may be language-specific in their effectiveness.
+
+### 5.1 Universal CEFR Modeling (Vajjala &amp; Rama, 2018)
+
+Vajjala and Rama (2018) used the MERLIN corpus to investigate cross-lingual CEFR classification across German, Italian, and Czech. They found that word n-grams combined with domain features were the strongest within-language predictors (German 0.686, Italian 0.837), but that POS n-grams transferred best across languages, achieving 0.758 for Italian in a cross-lingual setting. Domain features alone were weak, suggesting that CEFR difficulty is primarily a function of linguistic complexity rather than topic. The superiority of POS n-grams in cross-lingual transfer is theoretically interesting because part-of-speech patterns abstract over language-specific vocabulary while capturing syntactic and morphological complexity patterns that recur across languages.
+
+### 5.2 UniversalCEFR: 13 Languages (Imperial et al., 2025)
+
+The UniversalCEFR benchmark dramatically expanded the cross-lingual evidence base to 13 languages. A key finding was that feature effectiveness is language-dependent: no single feature set dominates across all languages, and the relative importance of lexical, syntactic, and morphological features varies. For well-resourced languages with large pretraining corpora, XLM-R tends to outperform feature-based models; for lower-resource languages like Czech, feature-based models can be competitive or even superior. This pattern suggests that data quantity moderates the feature-neural gap, with features providing more robust performance when training data is limited.
+
+### 5.3 ReadMe++ Multilingual Readability (Naous et al., 2023)
+
+The ReadMe++ dataset aggregated readability-annotated texts from 112 sources across 5 languages, providing a large-scale multilingual benchmark. While not exclusively CEFR-focused, this resource highlights the growing recognition that readability research must move beyond English monolingual settings, and that multilingual evaluation is essential for assessing the generality of any proposed approach.
+
+## 6. Key Findings and Research Gaps
+
+### 6.1 Lexical Frequency Is the Most Powerful Single Feature
+
+Across studies, languages, and datasets, lexical frequency emerges as the single most consistently powerful predictor of CEFR difficulty. Vajjala and Meurers (2012) identified it as the strongest predictor in their comprehensive SLA-motivated feature set. Pilán et al. (2016) showed that lexical features alone achieved 99% of the full model&#39;s document-level performance. Arnold et al. (2018) found word token and type counts---frequency-related measures---to be the most important features in gradient boosted trees. Xia et al. (2016) reported language model features (which are frequency-sensitive) as the best single feature group. This convergence across independent studies establishes lexical frequency as the bedrock of CEFR difficulty prediction.
+
+### 6.2 The Features-vs.-Neural Gap Is Modest
+
+The empirical gap between well-engineered feature-based models and fine-tuned neural models is consistently modest, typically in the range of 2 to 5 F1 or accuracy points. UniversalCEFR reports 4.5 points (58.3% vs. 62.8%); Khallaf and Sharoff report 5 points (0.75 vs. 0.80); Lagutina et al. report 2 points (67% vs. 69%); Arnold et al. report no neural advantage at all. This pattern suggests that feature-based models capture most of the information relevant to CEFR classification, and that neural models provide only incremental improvement---likely by capturing residual distributional patterns not explicitly encoded in the feature set.
+
+### 6.3 Sentence-Level Classification Demands More Features
+
+Document-level classification benefits from extensive text, which enables stable estimation of lexical profiles and other aggregate statistics. Sentence-level classification is substantially harder and more feature-hungry. Pilán et al. (2016) found that the gap between lexical-only and full-feature models widened from 1 point at document level to nearly 7 points at sentence level. Arase et al. (2022) showed that sentence length was insufficient to discriminate above B1 at the sentence level. These findings indicate that sentence-level CEFR classification requires richer feature representations that integrate syntactic, contextual, and potentially discourse-contextual information.
+
+### 6.4 Data Quantity Moderates the Features-vs.-Neural Gap
+
+The UniversalCEFR results suggest that the advantage of neural models is partially a function of data availability. For languages with abundant pretraining data and large fine-tuning corpora, neural models outperform features more convincingly. For lower-resource scenarios, feature-based models are competitive or superior (as seen with Czech in UniversalCEFR). This moderation effect has practical implications: in many real-world CEFR classification scenarios---particularly for less-studied languages or specialized domains---feature-based models may be the more reliable choice.
+
+### 6.5 Traditional Readability Formulas Are Essentially Useless for CEFR
+
+No study in this review found traditional readability formulas to be effective for CEFR classification. Pilán et al. (2016) found LIX useless. Vajjala and Meurers (2012) dismissed traditional formulas as crude proxies. Pitler and Nenkova (2008) found surface metrics to be the weakest predictors. The failure of these formulas reinforces the argument that CEFR difficulty is a multidimensional construct that cannot be reduced to sentence and word length.
+
+### 6.6 LLM Zero-Shot Prompting Substantially Underperforms
+
+Imperial et al. (2025) showed that Gemma3 prompting achieved only 43.2% macro-F1 on UniversalCEFR, nearly 20 points below fine-tuned XLM-R and 15 points below feature-based random forests. This result establishes that LLM prompting, at least with current models and prompting strategies, is not a viable approach to CEFR classification. The task requires calibrated discrimination between adjacent levels that general-purpose LLMs have not learned from pretraining alone.
+
+### 6.7 Language Model Surprisal Is Under-Explored for CEFR
+
+Despite the strong showing of language model features in Xia et al. (2016) and Pitler and Nenkova (2008), the systematic use of modern neural language model surprisal (e.g., GPT-based perplexity, BERT pseudo-log-likelihood) for CEFR classification remains under-explored. Most existing work uses classical n-gram language models. Given the strong theoretical motivation---surprisal captures processing difficulty, which is central to what CEFR levels encode---and the empirical success of LM features in readability research, this represents a significant gap and a promising direction for new work.
+
+## 7. Implications for the Research Hypothesis
+
+The hypothesis under investigation states that &#34;linguistic factors such as lexical frequency, syntactic complexity, and language model surprisal contribute more to perceived text difficulty, as measured by CEFR levels, than treating text difficulty as a black-box machine learning label.&#34; The literature provides substantial, though nuanced, support for this hypothesis.
+
+The strongest evidence in favor comes from the consistently modest gap between feature-based and neural models. If black-box models captured fundamentally different or richer information about CEFR difficulty, we would expect them to dramatically outperform feature-based models. Instead, the gap is 2-5 points across multiple independent studies, and in some cases (Arnold et al., 2018; Lagutina et al., 2023; Czech results in Imperial et al., 2025) there is no gap at all. This convergence suggests that the interpretable linguistic features---lexical frequency, syntactic complexity, and language model predictability---capture the great majority of the information relevant to CEFR classification.
+
+Further support comes from the abysmal performance of approaches that ignore linguistic structure entirely. LLM prompting, which treats CEFR classification as a general reasoning task without task-specific features or training, achieves only 43.2% (Imperial et al., 2025). Traditional readability formulas, which use only the crudest surface proxies, are consistently found to be useless. These negative results reinforce that CEFR difficulty is grounded in specific linguistic dimensions---precisely the dimensions that feature-based models are designed to capture.
+
+The evidence also supports the specific feature groups named in the hypothesis. Lexical frequency is the single strongest predictor across virtually all studies. Syntactic complexity contributes meaningfully, especially at the sentence level (Pilán et al., 2016) and in languages with rich morphosyntax (Khallaf &amp; Sharoff, 2021). Language model features were the best single feature group in Xia et al. (2016) and the second strongest in Pitler and Nenkova (2008).
+
+However, the hypothesis requires qualification in several respects. First, neural models do consistently outperform feature-based models, even if the margin is small. The 4.5-point advantage of XLM-R over RF-ALLFEATS in UniversalCEFR (Imperial et al., 2025) is modest but real, and it implies that pretrained representations capture some difficulty-relevant information that existing feature inventories miss. This residual information may correspond to distributional patterns too complex or too numerous to hand-engineer. Second, the advantage of feature-based models is most pronounced in low-resource settings; with abundant data and well-represented languages, neural models reliably edge ahead. Third, the hypothesis&#39;s claim about language model surprisal is currently supported more by analogy (from general readability research) than by direct evidence in CEFR-specific studies, given the under-exploration of neural surprisal features for this task.
+
+In sum, the literature supports a strong version of the hypothesis for practical purposes: interpretable linguistic features, when carefully designed, explain most of the variance in CEFR difficulty and perform within a few points of state-of-the-art neural models. The weaker claim that features are strictly superior to black-box approaches is not supported---neural models do provide a small but consistent improvement. The most promising direction may be a hybrid approach that combines the interpretability and robustness of linguistic features with the representational richness of neural language models, a direction that several studies (Xia et al., 2016; Khallaf &amp; Sharoff, 2021; Fujinuma &amp; Hagiwara, 2021) have begun to explore.
+
+## References
+
+Arase, Y., Uchida, S., &amp; Kajiwara, T. (2022). CEFR-Based Sentence Difficulty Annotation and Assessment Using Prototype Networks. In *Proceedings of the 2022 Conference on Empirical Methods in Natural Language Processing (EMNLP)*. Association for Computational Linguistics.
+
+Arnold, T., Ballier, N., Gaillat, T., &amp; Lissón, P. (2018). Predicting CEFR levels in learner English on the basis of metrics and full texts. In *Proceedings of the BEA Workshop*. Association for Computational Linguistics.
+
+François, T., &amp; Fairon, C. (2012). An &#34;AI readability&#34; formula for French as a foreign language. In *Proceedings of the 2012 Joint Conference on Empirical Methods in Natural Language Processing and Computational Natural Language Learning (EMNLP-CoNLL)*. Association for Computational Linguistics.
+
+Fujinuma, Y., &amp; Hagiwara, M. (2021). Joint Prediction of Word and Document Readability Using Graph Convolutional Networks. In *Proceedings of the 16th Workshop on Innovative Use of NLP for Building Educational Applications (BEA)*. Association for Computational Linguistics.
+
+Imperial, J. M., Tack, A., Francois, T., &amp; Shardlow, M. (2025). UniversalCEFR: A Universal Benchmark for CEFR-Level Text Difficulty Classification Across Languages. *arXiv preprint*.
+
+Khallaf, N., &amp; Sharoff, S. (2021). Automatic Difficulty Classification of Arabic Sentences. In *Proceedings of the Sixth Arabic Natural Language Processing Workshop (WANLP)*. Association for Computational Linguistics.
+
+Lagutina, N., Lagutina, K., Boychuk, E., &amp; Nikiforova, N. (2023). Comparison of Machine Learning and BERT-Based Methods for CEFR Level Classification of Russian Texts. *Communications in Computer and Information Science*.
+
+Naous, T., Ryan, M., &amp; Xu, W. (2023). ReadMe++: Benchmarking Multilingual Language Models for Multi-Domain Readability Assessment. *arXiv preprint*.
+
+Pilán, I., Volodina, E., &amp; Zesch, T. (2016). Predicting proficiency levels in learner writings by transferring a linguistic complexity model from expert-written coursebooks. In *Proceedings of COLING 2016*. Association for Computational Linguistics.
+
+Pitler, E., &amp; Nenkova, A. (2008). Revisiting Readability: A Unified Framework for Predicting Text Quality. In *Proceedings of the 2008 Conference on Empirical Methods in Natural Language Processing (EMNLP)*. Association for Computational Linguistics.
+
+Vajjala, S., &amp; Meurers, D. (2012). On Improving the Accuracy of Readability Classification Using Insights from Second Language Acquisition. In *Proceedings of the Seventh Workshop on Building Educational Applications Using NLP*. Association for Computational Linguistics.
+
+Vajjala, S., &amp; Rama, T. (2018). Experiments with Universal CEFR Classification. In *Proceedings of the Thirteenth Workshop on Innovative Use of NLP for Building Educational Applications (BEA)*. Association for Computational Linguistics.
+
+Xia, M., Kochmar, E., &amp; Briscoe, T. (2016). Text Readability Assessment for Second Language Learners. In *Proceedings of the 11th Workshop on Innovative Use of NLP for Building Educational Applications (BEA)*. Association for Computational Linguistics.
+
+
+════════════════════════════════════════════════════════════════════════════════
+                          PAPER REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+Generate a complete academic paper with the following structure:
+
+1. TITLE
+   - Clear, specific, informative
+   - Should convey main finding or contribution
+
+2. ABSTRACT (150-250 words)
+   - Problem statement
+   - Approach
+   - Key results
+   - Significance
+
+3. INTRODUCTION
+   - Research problem and motivation
+   - Gap in existing work
+   - Our contribution (be specific)
+   - Paper organization
+
+4. RELATED WORK
+   - Organized by theme/approach
+   - Position our work relative to prior work
+   - Cite papers from literature review
+
+5. METHODOLOGY
+   - Clear description of approach
+   - Experimental setup
+   - Datasets used
+   - Evaluation metrics
+   - Baselines
+
+6. RESULTS
+   - Present results with tables and figures
+   - Statistical analysis
+   - Comparison to baselines
+   - Ablation studies (if applicable)
+
+7. DISCUSSION
+   - Interpretation of results
+   - Limitations
+   - Broader implications
+
+8. CONCLUSION
+   - Summary of contributions
+   - Key findings
+   - Future work
+
+9. REFERENCES
+   - BibTeX format
+   - All cited papers
+
+════════════════════════════════════════════════════════════════════════════════
+                          OUTPUT FORMAT
+════════════════════════════════════════════════════════════════════════════════
+
+Create a MODULAR LaTeX project with the following directory structure:
+
+paper_draft/
+├── main.tex              # Main file that imports all sections
+├── references.bib        # BibTeX references
+├── sections/
+│   ├── abstract.tex      # Abstract content
+│   ├── introduction.tex  # Introduction section
+│   ├── related_work.tex  # Related work section
+│   ├── methodology.tex   # Methodology section
+│   ├── results.tex       # Results section
+│   ├── discussion.tex    # Discussion section
+│   └── conclusion.tex    # Conclusion section
+├── figures/              # Directory for any generated figures
+├── tables/               # Directory for complex standalone tables
+└── appendix/             # Directory for appendix sections (if needed)
+
+INSTRUCTIONS:
+1. First, create the directory structure above (mkdir -p paper_draft/sections paper_draft/figures paper_draft/tables paper_draft/appendix)
+2. Write main.tex using the EXACT preamble for NEURIPS:
+
+   \documentclass{article}
+   \usepackage[final]{neurips_2025}  % NEURIPS style (neurips_2025.sty is in paper_draft/)
+   \usepackage[hidelinks]{hyperref}  % REQUIRED: clickable links
+   \usepackage{booktabs}  % REQUIRED: professional tables
+   \usepackage{graphicx}
+   \usepackage{amsmath,amssymb}
+
+   % Import command files
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+   % Use this bibliography style:
+   \bibliographystyle{plainnat}
+
+   - Use \input{sections/...} to include each section
+   - Use \bibliography{references} for references
+3. Write each section file with COMPLETE content (no placeholders)
+4. Each section file should include its \section{} command
+5. Write references.bib with all citations in BibTeX format
+6. After writing all files, compile the paper:
+   cd paper_draft && pdflatex -interaction=nonstopmode main.tex && bibtex main && pdflatex -interaction=nonstopmode main.tex && pdflatex -interaction=nonstopmode main.tex
+
+This modular structure allows humans to easily:
+- Edit individual sections without navigating a large file
+- Track changes per section
+- Reuse sections across different paper versions
+
+════════════════════════════════════════════════════════════════════════════════
+                          QUALITY REQUIREMENTS
+════════════════════════════════════════════════════════════════════════════════
+
+- Academic tone throughout
+- All claims must be supported by data from the experiment report
+- Proper citations using \cite{} commands
+- Clear figures and tables with proper captions
+- NO placeholder text - every section must have real content
+- The paper MUST compile without errors
+- If compilation fails, debug and fix the LaTeX errors
+
+════════════════════════════════════════════════════════════════════════════════
+                          LAB WRITING STYLE
+════════════════════════════════════════════════════════════════════════════════
+
+Follow these lab-specific conventions to match our paper style:
+
+1. LANGUAGE STYLE:
+   - Use active voice: "We propose", "We examine", "We focus on"
+   - Be direct and confident: "Our main question is...", "We hypothesize that..."
+   - State things clearly and simply - prefer plain language over jargon
+   - Use bold questions as paragraph organizers: {\bf what is X?}
+   - Include specific quantitative claims: "8.97% over baseline"
+   - Avoid fancy wording: "utilize" → "use", "facilitate" → "help"
+
+2. INTRODUCTION STRUCTURE:
+   - Engaging hook (get to the point quickly)
+   - Problem importance
+   - Gap identification
+   - Your approach with method figure reference
+   - Quantitative preview of results
+   - Contribution bullets (3-4 items, action verbs)
+
+3. CONTRIBUTION LISTS:
+   \begin{itemize}[leftmargin=*,itemsep=0pt,topsep=0pt]
+       \item We propose...
+       \item We conduct...
+       \item We complement...
+   \end{itemize}
+
+4. MODULAR COMMANDS STRUCTURE:
+   Create paper_draft/commands/ directory with:
+   - math.tex: Math notation macros (copy from templates/paper_writing/commands/)
+   - general.tex: Formatting macros (copy from templates/paper_writing/commands/)
+   - macros.tex: Project-specific term definitions
+
+   In main.tex, include:
+   \input{commands/math}
+   \input{commands/general}
+   \input{commands/macros}
+
+5. REFERENCE CONVENTIONS:
+   Use reference macros from math.tex:
+   - \figref{fig:name} for "figure 1" (lowercase, in-sentence)
+   - \Figref{fig:name} for "Figure 1" (capitalized, start of sentence)
+   - \secref{sec:name} for "section 2"
+
+6. TEXT FORMATTING:
+   - Use \para{Header text} for bold paragraph headers
+   - Define method/dataset names with \textsc and \xspace:
+     \newcommand{\methodname}{\textsc{MethodName}\xspace}
+
+7. TABLE FORMATTING:
+   - Use booktabs package (no vertical lines)
+   - Use \resizebox{\textwidth}{!}{...} for wide tables
+   - Use @{} to remove padding at table edges
+   - Use \cmidrule(lr){x-y} for sub-headers
+   - Use \textsc{} for dataset/method names in headers
+   - Bold best results with {\bf ...}
+
+8. FIGURE FORMATTING:
+   - Use 0.32\textwidth for 3-column subfigures
+   - Use 0.95\linewidth for full-width figures
+   - Use \input{figures/legend} for shared legends
+   - Write self-contained captions explaining key observations
+
+9. RESULTS PRESENTATION:
+   - Define \increase and \decrease for colored arrows (green up, red down)
+   - Bold best results in tables
+   - Report confidence intervals when available
+
+10. ALGORITHM STYLING:
+    - Use algpseudocode with [noend]
+    - Use \triangleright for comments
+
+11. HYPERLINKS (REQUIRED):
+    - Always use \usepackage[hidelinks]{hyperref} or with colored links
+    - All citations, section refs, figure refs, table refs must be clickable
+    - This is essential for reader navigation
+
+════════════════════════════════════════════════════════════════════════════════
+                          WORKFLOW: REVIEW AND REFLECT
+════════════════════════════════════════════════════════════════════════════════
+
+Before calling finish, you MUST complete these review steps:
+
+1. REVIEW RESOURCES (at the start):
+   - Read templates/skills/paper-writer/SKILL.md for detailed guidance
+   - Study templates/paper_writing/lab_style_guide.md for style conventions
+   - Browse paper_examples/ for formatting and language patterns
+
+2. SELF-REFLECTION (before finishing):
+   After writing all sections, review your work against these criteria:
+
+   LANGUAGE CHECK:
+   - [ ] Is the writing clear and jargon-free?
+   - [ ] Are claims specific with quantitative support?
+   - [ ] Is active voice used throughout?
+
+   FORMATTING CHECK:
+   - [ ] Does main.tex include \input{commands/math}, \input{commands/general}, \input{commands/macros}?
+   - [ ] Is hyperref package included for clickable references?
+   - [ ] Do tables use booktabs (no vertical lines)?
+   - [ ] Are best results bolded in tables?
+   - [ ] Are figures/tables properly captioned?
+
+   STRUCTURE CHECK:
+   - [ ] Does introduction follow: hook → importance → gap → approach → preview → contributions?
+   - [ ] Are contribution bullets specific with action verbs?
+   - [ ] Does the paper compile without errors?
+
+3. FIX ISSUES:
+   - Address any issues found in the self-reflection
+   - Re-compile and verify the PDF looks correct
+
+Only after completing this review should you consider the paper finished.

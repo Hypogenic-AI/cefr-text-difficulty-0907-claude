@@ -1,0 +1,6 @@
+*.csv
+*.jsonl
+*.parquet
+*.tsv
+*.zip
+*.tar.gz

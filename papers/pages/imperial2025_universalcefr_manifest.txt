@@ -1,0 +1,23 @@
+PDF: /workspaces/cefr-text-difficulty-0907-claude/papers/imperial2025_universalcefr.pdf
+Total pages: 53
+Pages per chunk: 3
+
+Chunks:
+  imperial2025_universalcefr_chunk_001.pdf: pages 1-3
+  imperial2025_universalcefr_chunk_002.pdf: pages 4-6
+  imperial2025_universalcefr_chunk_003.pdf: pages 7-9
+  imperial2025_universalcefr_chunk_004.pdf: pages 10-12
+  imperial2025_universalcefr_chunk_005.pdf: pages 13-15
+  imperial2025_universalcefr_chunk_006.pdf: pages 16-18
+  imperial2025_universalcefr_chunk_007.pdf: pages 19-21
+  imperial2025_universalcefr_chunk_008.pdf: pages 22-24
+  imperial2025_universalcefr_chunk_009.pdf: pages 25-27
+  imperial2025_universalcefr_chunk_010.pdf: pages 28-30
+  imperial2025_universalcefr_chunk_011.pdf: pages 31-33
+  imperial2025_universalcefr_chunk_012.pdf: pages 34-36
+  imperial2025_universalcefr_chunk_013.pdf: pages 37-39
+  imperial2025_universalcefr_chunk_014.pdf: pages 40-42
+  imperial2025_universalcefr_chunk_015.pdf: pages 43-45
+  imperial2025_universalcefr_chunk_016.pdf: pages 46-48
+  imperial2025_universalcefr_chunk_017.pdf: pages 49-51
+  imperial2025_universalcefr_chunk_018.pdf: pages 52-53
